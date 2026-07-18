@@ -17,6 +17,20 @@ citability, discoverability. It does not and cannot guarantee citation.
 
 ## Data pulls
 
+Deterministic baseline (model-agnostic, always run this first):
+
+```
+python scripts/citation_score.py --url <page> --format text
+```
+
+This scores the page 0-100 across 11 weighted criteria (answer block,
+question headings, author, dates, sourcing, editorial schema, structure,
+depth, factual density, image accessibility, indexation) with per-criterion
+recommendations. It never calls a model, so results are identical under
+any LLM. Your job is to interpret the criteria, not re-check them by hand.
+
+Then the live baselines:
+
 ```
 python scripts/dfs_client.py mentions --keyword "<brand>" --limit 50 --pretty
 python scripts/dfs_client.py serp     --keyword "<page target keyword>" --limit 20
@@ -29,34 +43,31 @@ and point the user to docs/DATAFORSEO-SETUP.md.
 
 ## Process
 
-Score each page 0-2 per checklist item (0 = absent, 1 = partial,
-2 = solid):
-
-1. **Answer blocks** — direct, self-contained answers (~130-170 words)
-   under question-form headings, near the top of the page.
-2. **Sourcing** — key claims carry named sources, numbers, and dates;
-   no unsupported superlatives.
-3. **Authorship** — visible author with credentials; organization
-   identity with linked about/contact pages.
-4. **Dates** — honest publish and modified dates, visible in the content
-   and matching the schema.
-5. **Structure** — descriptive headings, one idea per section, lists and
-   tables only where they genuinely fit, no critical info trapped in
-   images.
-6. **Access** — indexable, server-rendered, and not blocked for the
-   search/AI crawlers the user wants to reach.
-7. **Entity clarity** — brand and product names used consistently;
-   Organization/Person schema with sameAs present.
+1. **Run the deterministic scorer** (`citation_score.py`) — adopt its
+   11-criterion breakdown as the objective baseline.
+2. **Layer judgment where the scorer is blind** — the script cannot assess
+   entity coverage vs competitors, claim accuracy, or prose quality. For
+   those, compare against the pages that actually rank (and get cited) for
+   the target query:
+   - Entity clarity — brand/product naming consistent; Organization/Person
+     schema with sameAs present
+   - Access — server-rendered content; robots rules for the AI crawlers the
+     user wants (check robots.txt with webfetch)
+   - Competitive citability — what do cited competitors have that this page
+     lacks (unique data, tools, expert quotes)?
+3. **Combine** into one scorecard: deterministic criteria + judgment items,
+   each with evidence and fix.
 
 ## Output
 
-- Score table: checklist item | score (0-2) | evidence | fix
+- Citation score (0-100, from the scorer) + grade, then the criterion
+  table: criterion | status | evidence | fix
 - Mention baseline: current mentions vs. the competitor set (from
-  `mentions`), with the total score per page
-- Prioritized fix list (critical/high/medium/low), each with a one-line
-  "why"
-- Single best next step: the lowest-scoring item with the highest
-  leverage — usually answer blocks or sourcing
+  `mentions`)
+- Prioritised fix list (critical/high/medium/low), each with a one-line
+  "why" — deterministic fixes first (they're provable), judgment fixes second
+- Single best next step: the lowest-scoring criterion with the highest
+  leverage — usually the answer block or sourcing
 
 Write the full scorecard to `CITATION-READINESS-<domain>-<date>.md` when
 auditing more than ~5 pages.

@@ -16,6 +16,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 import cache  # noqa: E402
+import citation_score  # noqa: E402
 import cost_ledger  # noqa: E402
 import dfs_client  # noqa: E402
 import drift_store  # noqa: E402
@@ -521,8 +522,85 @@ class TestReportBuild:
 
 
 # ---------------------------------------------------------------------------
-# seo_fix
+# citation_score
 # ---------------------------------------------------------------------------
+
+CITATION_BASE = {
+    "url": "https://x.com/guide", "status": 200, "noindex": False,
+    "title": "Guide", "meta_description": "d", "canonical": "https://x.com/guide",
+    "h1": ["Guide"], "h1_count": 1, "h2": [], "h2_count": 0, "list_count": 0,
+    "time_elements": 0, "jsonld_has_dates": False, "meta_author": "",
+    "has_rel_author": False, "number_density": 0.0, "word_count": 0,
+    "images_total": 0, "images_missing_alt": 0, "schema_blocks": 0,
+    "schema_types": [], "internal_link_count": 3, "external_link_count": 0,
+    "first_h2_para_words": 0, "first_h2_para_text": "", "has_viewport": True,
+    "html_lang": "en", "title_length": 5, "meta_description_length": 1,
+}
+
+CITATION_GOOD = {**CITATION_BASE,
+    "h2": ["What is pour over coffee?", "How does it taste?", "Which is best?"],
+    "h2_count": 3, "list_count": 2, "word_count": 1800,
+    "first_h2_para_words": 60, "meta_author": "Lee Beirne",
+    "jsonld_has_dates": True, "schema_types": ["Article", "BreadcrumbList"],
+    "external_link_count": 3, "number_density": 12.0,
+}
+
+
+class TestCitationScore:
+    def _crit(self, result, name):
+        return next(c for c in result["criteria"] if c["criterion"] == name)
+
+    def test_perfect_page_scores_high(self):
+        result = citation_score.score_page(CITATION_GOOD)
+        assert result["score"] >= 95
+        assert result["grade"] == "Strong citation candidate"
+        assert all(c["status"] == "pass" for c in result["criteria"])
+
+    def test_noindex_gate(self):
+        result = citation_score.score_page({**CITATION_GOOD, "noindex": True})
+        assert result["score"] == 0
+        assert "noindex" in result["gate"]
+
+    def test_status_gate(self):
+        result = citation_score.score_page({**CITATION_GOOD, "status": 404})
+        assert result["score"] == 0
+        assert "404" in result["gate"]
+
+    def test_empty_page_scores_low(self):
+        result = citation_score.score_page(CITATION_BASE)
+        assert result["score"] < 40
+        assert result["grade"] == "Not ready"
+
+    def test_answer_block_tiers(self):
+        thin = citation_score.score_page({**CITATION_BASE, "first_h2_para_words": 20})
+        ideal = citation_score.score_page({**CITATION_BASE, "first_h2_para_words": 60})
+        long = citation_score.score_page({**CITATION_BASE, "first_h2_para_words": 250})
+        assert self._crit(thin, "Answer block")["points"] == 8
+        assert self._crit(ideal, "Answer block")["points"] == 20
+        assert self._crit(long, "Answer block")["points"] == 12
+
+    def test_question_heading_detection(self):
+        with_q = citation_score.score_page(
+            {**CITATION_BASE, "h2": ["How does it work?"], "h2_count": 1})
+        without_q = citation_score.score_page(
+            {**CITATION_BASE, "h2": ["Overview"], "h2_count": 1})
+        assert self._crit(with_q, "Question-form headings")["status"] == "pass"
+        assert self._crit(without_q, "Question-form headings")["status"] == "fail"
+
+    def test_partial_credit(self):
+        one_link = citation_score.score_page({**CITATION_BASE, "external_link_count": 1})
+        assert self._crit(one_link, "Outbound sourcing")["points"] == 6
+        assert self._crit(one_link, "Outbound sourcing")["status"] == "partial"
+
+    def test_failing_criteria_have_recommendations(self):
+        result = citation_score.score_page(CITATION_BASE)
+        for c in result["criteria"]:
+            if c["status"] in ("fail", "partial"):
+                assert c.get("recommendation"), f"{c['criterion']} missing recommendation"
+
+    def test_disclaimer_present(self):
+        result = citation_score.score_page(CITATION_GOOD)
+        assert "cannot guarantee citation" in result["disclaimer"]
 
 class TestSeoFix:
     PAGE = {

@@ -39,9 +39,16 @@ class PageParser(HTMLParser):
         super().__init__(convert_charrefs=True)
         self.title = ""
         self.meta_description = ""
+        self.meta_author = ""
         self.canonical = ""
         self.h1: list[str] = []
+        self.h2: list[str] = []
         self.h2_count = 0
+        self.list_count = 0
+        self.time_elements = 0
+        self.jsonld_has_dates = False
+        self.has_rel_author = False
+        self.number_density = 0
         self.links: list[str] = []
         self.internal_link_count = 0
         self.external_link_count = 0
@@ -57,6 +64,7 @@ class PageParser(HTMLParser):
         self.first_h2_para_text = ""  # truncated raw text (for fix drafts)
         self._in_title = False
         self._in_h1 = False
+        self._in_h2 = False
         self._in_jsonld = False
         self._jsonld_parts: list[str] = []
         self._seen_h2 = False
@@ -75,8 +83,13 @@ class PageParser(HTMLParser):
         elif tag == "h1":
             self._in_h1 = True
         elif tag == "h2":
+            self._in_h2 = True
             self._seen_h2 = True
             self.h2_count += 1
+        elif tag in ("ul", "ol"):
+            self.list_count += 1
+        elif tag == "time":
+            self.time_elements += 1
         elif tag == "p" and self._seen_h2 and not self._para_done:
             self._capture_para = True
         elif tag in ("script", "style", "noscript"):
@@ -88,6 +101,11 @@ class PageParser(HTMLParser):
             name = (attr.get("name") or attr.get("property") or "").lower()
             if name == "description":
                 self.meta_description = (attr.get("content") or "").strip()
+            elif name == "author":
+                self.meta_author = (attr.get("content") or "").strip()
+            elif name in ("article:published_time", "article:modified_time",
+                          "date", "dc.date"):
+                self.jsonld_has_dates = True
             elif name == "viewport":
                 self.has_viewport = True
             elif name == "robots" and "noindex" in (attr.get("content") or "").lower():
@@ -96,8 +114,13 @@ class PageParser(HTMLParser):
             rel = (attr.get("rel") or "").lower()
             if rel == "canonical" and attr.get("href"):
                 self.canonical = attr["href"].strip()
-        elif tag == "a" and attr.get("href"):
-            self.links.append(attr["href"])
+            if "author" in rel:
+                self.has_rel_author = True
+        elif tag == "a":
+            if attr.get("href"):
+                self.links.append(attr["href"])
+            if "author" in (attr.get("rel") or "").lower():
+                self.has_rel_author = True
         elif tag == "img":
             self.images_total += 1
             if not (attr.get("alt") or "").strip():
@@ -108,6 +131,8 @@ class PageParser(HTMLParser):
             self._in_title = False
         elif tag == "h1":
             self._in_h1 = False
+        elif tag == "h2":
+            self._in_h2 = False
         elif tag == "p" and self._capture_para:
             self._capture_para = False
             self._para_done = True
@@ -116,7 +141,10 @@ class PageParser(HTMLParser):
             if tag == "script" and self._in_jsonld:
                 self._in_jsonld = False
                 self.schema_blocks += 1
-                self._extract_schema_types("".join(self._jsonld_parts))
+                raw = "".join(self._jsonld_parts)
+                if "datePublished" in raw or "dateModified" in raw:
+                    self.jsonld_has_dates = True
+                self._extract_schema_types(raw)
 
     def _extract_schema_types(self, raw: str) -> None:
         try:
@@ -136,6 +164,8 @@ class PageParser(HTMLParser):
             self.title += data
         if self._in_h1:
             self.h1.append(data.strip())
+        if self._in_h2:
+            self.h2.append(data.strip())
         if self._in_jsonld:
             self._jsonld_parts.append(data)
         if self._capture_para:
@@ -148,9 +178,13 @@ class PageParser(HTMLParser):
         self.word_count = len(re.findall(r"\w+", text))
         self.title = " ".join(self.title.split())
         self.h1 = [" ".join(h.split()) for h in self.h1 if h.strip()]
+        self.h2 = [" ".join(h.split()) for h in self.h2 if h.strip()]
         para_text = " ".join(" ".join(self._para_parts).split())
         self.first_h2_para_words = len(re.findall(r"\w+", para_text))
         self.first_h2_para_text = para_text[:400]
+        # factual-density proxy: tokens containing digits or % per 1k words
+        numbers = len(re.findall(r"\b[\d][\d.,]*%?\b", text))
+        self.number_density = round(1000 * numbers / max(self.word_count, 1), 1)
 
 
 def fetch(url: str, timeout: int) -> tuple[int, str, str]:
@@ -226,7 +260,14 @@ def crawl(start_url: str, max_pages: int, delay: float, timeout: int,
                 "canonical": parser.canonical,
                 "h1": parser.h1,
                 "h1_count": len(parser.h1),
+                "h2": parser.h2,
                 "h2_count": parser.h2_count,
+                "list_count": parser.list_count,
+                "time_elements": parser.time_elements,
+                "jsonld_has_dates": parser.jsonld_has_dates,
+                "meta_author": parser.meta_author,
+                "has_rel_author": parser.has_rel_author,
+                "number_density": parser.number_density,
                 "word_count": parser.word_count,
                 "noindex": parser.noindex,
                 "images_total": parser.images_total,

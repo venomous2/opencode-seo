@@ -28,7 +28,7 @@ A native [OpenCode](https://opencode.ai) SEO skill pack: **82 skills, 4 speciali
 ## Why this suite
 
 - **Live data, not guesses.** Every volume, ranking, and backlink number comes from the DataForSEO API. Skills refuse to fabricate metrics.
-- **A deterministic core.** 26 SEO checks as YAML rules with embedded tests, evaluated in pure Python — zero model calls, so results are identical across all 400+ OpenCode models. Lint any page, gate your CI with `--min-score`, and apply mechanical fixes with the fix engine.
+- **A deterministic core.** 26 SEO checks as YAML rules with embedded tests, plus an 11-criterion citation-readiness scorer — all evaluated in pure Python with zero model calls, so results are identical across all 400+ OpenCode models. Lint any page, gate your CI with `--min-score`, and apply mechanical fixes with the fix engine.
 - **Three layers.** Atomic skills for focused tasks → workflow skills that chain them for end-to-end jobs → project memory (`seo-project.yml` or per-client profiles) that keeps outputs consistent.
 - **AI-search first.** Ten skills for AI Overviews, AI Mode, ChatGPT, Perplexity, Gemini, and LLM citation readiness — evidence-based, no hype.
 - **Optional Google tier.** Add a Google API key / service account for real CrUX field data, Search Console queries, and GA4 organic traffic when you have them.
@@ -173,6 +173,7 @@ and load it with `--client <name>`.
 | `rule_engine.py` | Deterministic rule engine (26 YAML rules) — zero model calls |
 | `seo_lint.py` | "ESLint for SEO": lint URL/file/dir, `--min-score` CI gate |
 | `seo_fix.py` | Fix engine: lint findings → concrete patches with `.bak` backups |
+| `citation_score.py` | Citation readiness: 11 weighted criteria → 0-100 score + recommendations |
 
 Plus `rules/` — 26 SEO checks as structured YAML (metadata, headings,
 indexability, content, images, schema, mobile, international, links), each

@@ -3,6 +3,31 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.6.0] - 2026-07-18
+
+Deterministic citation readiness scoring.
+
+### Added
+- **`citation_score.py`** — scores a page 0-100 across 11 weighted
+  citation-readiness criteria: answer block (tiered), question-form
+  headings, author signal, date signals, outbound sourcing, editorial
+  schema, structure & scannability, content depth, factual density
+  (low-confidence heuristic), image accessibility, indexation basics.
+  Hard gates for noindex / non-200 pages. Every partial/failed criterion
+  carries a concrete recommendation; grades from "Not ready" to "Strong
+  citation candidate", with an explicit "cannot guarantee citation"
+  disclaimer. Zero model calls — identical results under any LLM.
+- Parser now also extracts: H2 texts, list counts, JSON-LD date flags,
+  meta author / rel=author signals, `<time>` elements, and a numeric
+  factual-density proxy
+- 9 new tests (tiers, gates, partial credit, recommendation coverage;
+  80 total)
+
+### Changed
+- `llm-citation-readiness` skill now adopts `citation_score.py` as its
+  objective baseline and layers judgment (entity coverage, crawler access,
+  competitive citability) on top instead of hand-scoring everything
+
 ## [0.5.0] - 2026-07-18
 
 The fix engine: lint findings become concrete patches.
