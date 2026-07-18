@@ -1,0 +1,20 @@
+id: meta-description-too-short
+category: metadata
+severity: low
+confidence: high
+detect:
+  field: meta_description_length
+  condition: min
+  value: 70
+why: >
+  A meta description under about 70 characters rarely fills the available
+  snippet space, so it under-sells the page and gives the searcher too
+  little information to choose your result over a competitor's.
+fix:
+  guidance: >
+    Expand the description to 120-155 characters: state what the page
+    covers, who it is for, and one concrete detail or benefit that sets it
+    apart.
+test:
+  expect_fail: {meta_description_length: 45}
+  expect_pass: {meta_description_length: 140}

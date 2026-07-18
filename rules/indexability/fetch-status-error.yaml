@@ -1,0 +1,20 @@
+id: fetch-status-error
+category: indexability
+severity: critical
+confidence: high
+detect:
+  field: status
+  condition: not_equals
+  value: 200
+why: >
+  A page that does not return a 200 status cannot rank: errors tell Google
+  the page is gone or broken, and redirects send its signals elsewhere.
+  Every URL you expect to earn traffic must return content directly.
+fix:
+  guidance: >
+    Diagnose the status code: fix 5xx errors at the server or application
+    layer, restore or 301-redirect 404s to the closest live equivalent, and
+    make sure redirecting URLs resolve to a final 200 destination.
+test:
+  expect_fail: {status: 404}
+  expect_pass: {status: 200}

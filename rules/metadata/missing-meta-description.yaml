@@ -1,0 +1,19 @@
+id: missing-meta-description
+category: metadata
+severity: high
+confidence: high
+detect:
+  field: meta_description
+  condition: empty
+why: >
+  Google often uses the meta description as the snippet text beneath your
+  title. Without one, Google guesses from page copy, which usually produces
+  a weaker, less clickable summary.
+fix:
+  guidance: >
+    Write a unique 120-155 character meta description that summarises the
+    page's value, includes the primary keyword naturally, and gives the
+    searcher a reason to click.
+test:
+  expect_fail: {meta_description: ""}
+  expect_pass: {meta_description: "Compare the best coffee grinders of 2026, tested side by side for grind consistency, noise and price."}

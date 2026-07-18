@@ -1,0 +1,19 @@
+id: missing-h1
+category: headings
+severity: critical
+confidence: high
+detect:
+  field: h1_count
+  condition: empty
+why: >
+  The H1 is the primary on-page statement of what the page is about, for
+  both search engines and visitors. Without one, the page loses its
+  clearest relevance signal and its first accessibility anchor.
+fix:
+  guidance: >
+    Add a single <h1> near the top of the main content that names the
+    page's topic in plain words, closely matching the title tag's promise
+    without duplicating it word for word.
+test:
+  expect_fail: {h1_count: 0}
+  expect_pass: {h1_count: 1}

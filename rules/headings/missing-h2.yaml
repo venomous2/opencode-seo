@@ -1,0 +1,19 @@
+id: missing-h2
+category: headings
+severity: medium
+confidence: high
+detect:
+  field: h2_count
+  condition: empty
+why: >
+  H2 subheadings break content into scannable sections for readers and
+  give search engines the passage boundaries they use for featured
+  snippets and AI answer extraction. A page with none is one undifferentiated
+  block.
+fix:
+  guidance: >
+    Add descriptive <h2> subheadings for each major section of the page,
+    phrased naturally around the subtopics and questions the page covers.
+test:
+  expect_fail: {h2_count: 0}
+  expect_pass: {h2_count: 4}

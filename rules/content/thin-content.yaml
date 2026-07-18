@@ -1,0 +1,21 @@
+id: thin-content
+category: content
+severity: high
+confidence: high
+detect:
+  field: word_count
+  condition: min
+  value: 300
+why: >
+  Under roughly 300 words a page rarely satisfies an informational query,
+  because it cannot cover the subtopics and follow-up questions a searcher
+  expects. Thin pages tend to rank poorly and can weaken the site's overall
+  quality signals.
+fix:
+  guidance: >
+    Compare the page with the current top-ranking results for its target
+    query and expand it to cover the subtopics, questions and evidence
+    they include, or merge it into a stronger page on the same topic.
+test:
+  expect_fail: {word_count: 180}
+  expect_pass: {word_count: 900}

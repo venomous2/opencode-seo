@@ -1,18 +1,19 @@
 # OpenCode SEO Suite
 
-A native [OpenCode](https://opencode.ai) SEO skill pack: **81 skills, 4 specialist agents, and 8 slash commands** covering technical SEO, content strategy, AI search optimization (GEO/AEO), competitive research, local SEO, and e-commerce — with **DataForSEO as the mandatory live-data backbone** and optional Google API enrichment (Search Console, GA4, PageSpeed, CrUX).
+A native [OpenCode](https://opencode.ai) SEO skill pack: **82 skills, 4 specialist agents, 8 slash commands, and a deterministic rule engine** covering technical SEO, content strategy, AI search optimization (GEO/AEO), competitive research, local SEO, and e-commerce — with **DataForSEO as the mandatory live-data backbone** and optional Google API enrichment (Search Console, GA4, PageSpeed, CrUX).
 
 **Built by Lee Beirne.** Inspired by [`AgriciDaniel/claude-seo`](https://github.com/AgriciDaniel/claude-seo) — an original re-implementation for OpenCode, modified and extended by Lee Beirne (DataForSEO-mandatory data layer, three-layer architecture, project memory). All skill content is original; credit for the underlying concept goes to Agrici Daniel.
 
 ## Why this suite
 
 - **Live data, not guesses.** Every volume, ranking, and backlink number comes from the DataForSEO API. Skills refuse to fabricate metrics.
+- **A deterministic core.** 26 SEO checks as YAML rules with embedded tests, evaluated in pure Python — zero model calls, so results are identical across all 400+ OpenCode models. Lint any page, gate your CI with `--min-score`.
 - **Three layers.** Atomic skills for focused tasks → workflow skills that chain them for end-to-end jobs → project memory (`seo-project.yml` or per-client profiles) that keeps outputs consistent.
 - **AI-search first.** Ten skills for AI Overviews, AI Mode, ChatGPT, Perplexity, Gemini, and LLM citation readiness — evidence-based, no hype.
 - **Optional Google tier.** Add a Google API key / service account for real CrUX field data, Search Console queries, and GA4 organic traffic when you have them.
 - **British English by default.** All analysis, recommendations, and reports are written in British English unless you ask for another variant.
 - **Monitoring built in.** Drift snapshots, a DataForSEO cost ledger, and response caching turn one-off audits into a repeatable system.
-- **Client-ready output.** White-label HTML reports with your branding, one command away from any markdown report.
+- **Client-ready output.** White-label HTML reports with charts, an executive one-pager, and before/after comparisons — one command away from any markdown report.
 
 ## Install
 
@@ -97,6 +98,12 @@ and load it with `--client <name>`.
 | `project_memory.py` | `seo-project.yml` + client profiles |
 | `mcp_server.py` | Optional MCP server exposing DataForSEO as native tools |
 | `setup_wizard.py` | Interactive first-time setup |
+| `rule_engine.py` | Deterministic rule engine (26 YAML rules) — zero model calls |
+| `seo_lint.py` | "ESLint for SEO": lint URL/file/dir, `--min-score` CI gate |
+
+Plus `rules/` — 26 SEO checks as structured YAML (metadata, headings,
+indexability, content, images, schema, mobile, international, links), each
+with embedded tests. See [docs/RULE-ENGINE.md](docs/RULE-ENGINE.md).
 
 ## Architecture
 

@@ -1,0 +1,20 @@
+id: canonical-relative
+category: indexability
+severity: medium
+confidence: high
+detect:
+  field: canonical
+  condition: matches
+  value: ^/
+why: >
+  A canonical that starts with a slash is relative, and Google recommends
+  absolute URLs because relative canonicals are easier to misresolve across
+  protocol, www and staging variants. Ambiguity here can point ranking
+  signals at the wrong URL.
+fix:
+  guidance: >
+    Rewrite the canonical as a full absolute URL, including scheme and
+    domain: <link rel="canonical" href="https://example.com/this-page">.
+test:
+  expect_fail: {canonical: "/this-page"}
+  expect_pass: {canonical: "https://example.com/this-page"}

@@ -39,6 +39,10 @@ done
 mkdir -p "$SUITE_DIR/scripts"
 cp -R "$ROOT/scripts/"* "$SUITE_DIR/scripts/"
 echo "Installed scripts -> $SUITE_DIR/scripts"
+if [ -d "$ROOT/rules" ]; then
+    cp -R "$ROOT/rules" "$SUITE_DIR/"
+    echo "Installed rules -> $SUITE_DIR/rules ($(find "$SUITE_DIR/rules" -name '*.yaml' | wc -l | tr -d ' ') rules)"
+fi
 
 if [ -n "$PY" ]; then
     if "$PY" -m pip install --user --quiet pyyaml 2>/dev/null; then

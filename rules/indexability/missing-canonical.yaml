@@ -1,0 +1,19 @@
+id: missing-canonical
+category: indexability
+severity: medium
+confidence: high
+detect:
+  field: canonical
+  condition: empty
+why: >
+  Without a canonical tag, every parameter, protocol, or www variant of
+  this URL can compete with itself in the index, splitting ranking signals.
+  A self-referencing canonical removes that ambiguity.
+fix:
+  guidance: >
+    Add <link rel="canonical" href="https://example.com/this-page"> in the
+    <head>, pointing at the page's own absolute URL (or the preferred
+    version if this page duplicates another).
+test:
+  expect_fail: {canonical: ""}
+  expect_pass: {canonical: "https://example.com/page"}

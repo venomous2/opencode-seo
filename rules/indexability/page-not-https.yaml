@@ -1,0 +1,20 @@
+id: page-not-https
+category: indexability
+severity: medium
+confidence: high
+detect:
+  field: url
+  condition: not_contains
+  value: https://
+why: >
+  HTTPS is a baseline ranking signal and a trust requirement: browsers
+  flag plain-HTTP pages as "not secure", which deters visitors before the
+  content even loads. Any indexable page should be served over HTTPS.
+fix:
+  guidance: >
+    Serve the page over HTTPS, 301-redirect the HTTP version to the HTTPS
+    equivalent, and update internal links, canonicals and sitemap entries
+    to point at the secure URL.
+test:
+  expect_fail: {url: "http://example.com/page"}
+  expect_pass: {url: "https://example.com/page"}

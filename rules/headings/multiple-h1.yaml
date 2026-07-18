@@ -1,0 +1,19 @@
+id: multiple-h1
+category: headings
+severity: high
+confidence: high
+detect:
+  field: h1_count
+  condition: max
+  value: 1
+why: >
+  Multiple H1s dilute the page's main topic, leaving search engines and
+  assistive technology to guess which heading actually describes the page.
+  One H1 per page keeps the topic statement unambiguous.
+fix:
+  guidance: >
+    Keep the single H1 that best describes the page's topic and demote the
+    rest to <h2> (or lower) so the heading hierarchy has exactly one root.
+test:
+  expect_fail: {h1_count: 3}
+  expect_pass: {h1_count: 1}

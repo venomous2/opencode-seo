@@ -78,14 +78,35 @@ def check_scripts() -> int:
     return count
 
 
+def check_rules() -> int:
+    """Validate rule YAML files via the engine's loader + self-tests."""
+    rules_dir = ROOT / "rules"
+    if not rules_dir.is_dir():
+        errors.append("rules/: directory missing")
+        return 0
+    sys.path.insert(0, str(ROOT / "scripts"))
+    try:
+        import rule_engine
+        rules = rule_engine.load_rules()
+        result = rule_engine.test_rules(rules)
+        for failure in result["failures"]:
+            errors.append(f"rule {failure['id']}: {failure['detail']}")
+        return len(rules)
+    except Exception as exc:  # noqa: BLE001 - report any loader failure
+        errors.append(f"rules/: {exc}")
+        return 0
+
+
 def main() -> int:
     n_skills = check_skills()
     n_agents = check_md_frontmatter(ROOT / ".opencode" / "agents", "agents")
     n_commands = check_md_frontmatter(ROOT / ".opencode" / "commands", "commands")
     n_scripts = check_scripts()
+    n_rules = check_rules()
 
     for doc in ("README.md", "INSTALL.md", "docs/DATAFORSEO-SETUP.md",
-                "docs/GOOGLE-APIS.md", "docs/ARCHITECTURE.md"):
+                "docs/GOOGLE-APIS.md", "docs/ARCHITECTURE.md",
+                "docs/RULE-ENGINE.md"):
         if not (ROOT / doc).is_file():
             warnings.append(f"missing doc: {doc}")
 
@@ -93,6 +114,7 @@ def main() -> int:
     print(f"agents   : {n_agents} checked")
     print(f"commands : {n_commands} checked")
     print(f"scripts  : {n_scripts} compiled")
+    print(f"rules    : {n_rules} validated")
     for w in warnings:
         print(f"  WARN   : {w}")
     if errors:

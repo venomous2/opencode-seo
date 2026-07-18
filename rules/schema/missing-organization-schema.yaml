@@ -1,0 +1,21 @@
+id: missing-organization-schema
+category: schema
+severity: low
+confidence: low
+detect:
+  field: schema_types
+  condition: list_not_contains
+  value: Organization
+why: >
+  Organization schema on the homepage anchors the brand entity, its name,
+  logo, profiles and contact details, which supports knowledge panel
+  eligibility and consistent entity understanding across the site.
+fix:
+  guidance: >
+    On the homepage (or the site's main entity page), add an Organization
+    JSON-LD block with name, url, logo and sameAs links to official
+    profiles. This rule applies to the homepage; inner pages do not each
+    need their own Organization markup.
+test:
+  expect_fail: {schema_types: ["WebPage"]}
+  expect_pass: {schema_types: ["Organization", "WebSite"]}

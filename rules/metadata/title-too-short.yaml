@@ -1,0 +1,20 @@
+id: title-too-short
+category: metadata
+severity: low
+confidence: high
+detect:
+  field: title_length
+  condition: min
+  value: 30
+why: >
+  Very short titles waste snippet space and rarely contain the query a
+  searcher typed. With so few words, the title can neither signal relevance
+  to Google nor give users a reason to click.
+fix:
+  guidance: >
+    Expand the title to 50-60 characters: name the page's primary topic,
+    put the main keyword near the front, and add a distinguishing detail
+    or the brand at the end.
+test:
+  expect_fail: {title_length: 15}
+  expect_pass: {title_length: 55}

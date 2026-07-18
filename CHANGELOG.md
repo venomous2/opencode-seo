@@ -3,6 +3,36 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0] - 2026-07-18
+
+The deterministic core: rule engine + SEO linting.
+
+### Added
+- **Rule engine** (`scripts/rule_engine.py` + `rules/`): 26 SEO checks as
+  structured YAML rules across 9 categories (metadata, headings,
+  indexability, content, images, schema, mobile, international, links).
+  Every rule carries severity, confidence, client-facing rationale, fix
+  guidance, and embedded test fixtures. Fully deterministic — zero model
+  calls, so it works identically across all of OpenCode's 400+ models
+- **`seo_lint.py`** — "ESLint for SEO": lint a live URL, local HTML file,
+  or directory of files; 0-100 scores with severity-ranked findings;
+  `--min-score` CI quality gate (exit 1 below threshold); `--format text`
+  human output; URL-dependent rules auto-skip for local files
+- **`seo-lint` skill** — thin skill that runs the linter, triages findings,
+  and dismisses page-type-inappropriate rules with reasons
+- Rule self-testing: `python scripts/rule_engine.py test` runs every rule's
+  embedded fixtures; `validate.py` now validates the rules directory
+- 24 new tests (conditions matrix, scoring, lint parsing, gate exit codes,
+  good-page benchmark; 63 total)
+- docs/RULE-ENGINE.md — full schema, field and condition reference
+
+### Changed
+- `site_crawler.py` parser now also extracts: images total/missing alt,
+  JSON-LD block count and @types, H2 count, viewport presence, html lang,
+  internal/external link counts, and an answer-block heuristic
+  (first-H2 paragraph word count)
+- Installers now copy `rules/` into the suite home
+
 ## [0.3.1] - 2026-07-18
 
 Before/after reporting and the executive one-pager.

@@ -1,0 +1,21 @@
+id: very-thin-content
+category: content
+severity: critical
+confidence: high
+detect:
+  field: word_count
+  condition: min
+  value: 100
+why: >
+  A page under about 100 words is almost always seen as no-value content:
+  it cannot answer a query, demonstrate expertise, or give search engines
+  enough text to understand the topic. Pages like this drag down perceived
+  site quality.
+fix:
+  guidance: >
+    Either expand the page into a genuinely useful resource that answers
+    the query fully, or, if it serves a narrow utility purpose, noindex it
+    or consolidate it into a stronger related page with a 301 redirect.
+test:
+  expect_fail: {word_count: 42}
+  expect_pass: {word_count: 350}

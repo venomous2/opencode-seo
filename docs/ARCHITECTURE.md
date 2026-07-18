@@ -63,10 +63,25 @@ score) so the orchestrator can synthesize a 0-100 site score.
 | `project_memory.py` | `seo-project.yml` + per-client profiles (clients/*.yml) |
 | `mcp_server.py` | Optional MCP server (10 DataForSEO tools) |
 | `setup_wizard.py` | Interactive first-time setup |
+| `rule_engine.py` | Deterministic rule engine: evaluates YAML rules against page data — zero model calls, model-agnostic |
+| `seo_lint.py` | "ESLint for SEO" CLI: lint URL/file/dir, 0-100 scores, `--min-score` CI gate |
 
 Skills call these via bash and parse the JSON output. The scripts are
 installed to `~/.config/opencode/seo-suite/scripts/`; skills reference them
 as `python scripts/<name>.py` from the project root.
+
+### The rule engine (`rules/`)
+
+SEO checks live as structured YAML rules (`rules/<category>/<id>.yaml`),
+each with severity, detection condition, client-facing rationale, fix
+guidance, and embedded test fixtures. This is the single source of truth:
+`seo_lint.py`, CI gates, and (increasingly) audit skills all consume the
+same rules instead of duplicating logic in prompts. Detection is fully
+deterministic — which is what makes the suite model-agnostic across
+OpenCode's 400+ models. See docs/RULE-ENGINE.md.
+
+Design split: **the engine handles everything checkable without taste;
+skills keep everything that needs taste** (briefs, PR, strategy).
 
 ### Cross-cutting services
 

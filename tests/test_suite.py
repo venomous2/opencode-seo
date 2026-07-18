@@ -22,13 +22,142 @@ import drift_store  # noqa: E402
 import log_analyzer  # noqa: E402
 import project_memory  # noqa: E402
 import report_build  # noqa: E402
+import rule_engine  # noqa: E402
 import schema_gen  # noqa: E402
 import seo_config  # noqa: E402
+import seo_lint  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
-# schema_gen
+# rule_engine
 # ---------------------------------------------------------------------------
+
+class TestRuleEngine:
+    def test_load_all_rules(self):
+        rules = rule_engine.load_rules()
+        assert len(rules) >= 26
+        ids = [r["id"] for r in rules]
+        assert len(ids) == len(set(ids)), "duplicate rule ids"
+
+    def test_all_embedded_rule_tests_pass(self):
+        rules = rule_engine.load_rules()
+        result = rule_engine.test_rules(rules)
+        assert result["failed"] == 0, f"failing rules: {result['failures']}"
+
+    def test_category_filter(self):
+        rules = rule_engine.load_rules(category="metadata")
+        assert rules and all(r["category"] == "metadata" for r in rules)
+
+    def test_invalid_rule_rejected(self, tmp_path):
+        bad = tmp_path / "bad.yaml"
+        bad.write_text("id: x\ncategory: y\n", encoding="utf-8")
+        with pytest.raises(rule_engine.RuleError):
+            rule_engine.load_rules(rules_dir=tmp_path)
+
+
+class TestConditions:
+    @pytest.mark.parametrize("detect,page,expected", [
+        ({"field": "title", "condition": "empty"}, {"title": ""}, True),
+        ({"field": "title", "condition": "empty"}, {"title": "Hi"}, False),
+        ({"field": "h1_count", "condition": "empty"}, {"h1_count": 0}, True),
+        ({"field": "status", "condition": "empty"}, {"status": 0}, False),  # not count-field
+        ({"field": "h1_count", "condition": "max", "value": 1}, {"h1_count": 2}, True),
+        ({"field": "word_count", "condition": "min", "value": 300}, {"word_count": 80}, True),
+        ({"field": "word_count", "condition": "min", "value": 300}, {"word_count": 900}, False),
+        ({"field": "images_missing_alt", "condition": "gte", "value": 1},
+         {"images_missing_alt": 2}, True),
+        ({"field": "title_length", "condition": "lte", "value": 65},
+         {"title_length": 65}, True),
+        ({"field": "noindex", "condition": "is_true"}, {"noindex": True}, True),
+        ({"field": "has_viewport", "condition": "is_false"}, {"has_viewport": None}, True),
+        ({"field": "url", "condition": "not_contains", "value": "https://"},
+         {"url": "http://x.com"}, True),
+        ({"field": "schema_types", "condition": "list_contains", "value": "Article"},
+         {"schema_types": ["article", "BreadcrumbList"]}, True),
+        ({"field": "schema_types", "condition": "list_not_contains", "value": "Article"},
+         {"schema_types": ["Product"]}, True),
+        ({"field": "canonical", "condition": "matches", "value": "^/"},
+         {"canonical": "/page"}, True),
+    ])
+    def test_evaluate(self, detect, page, expected):
+        assert rule_engine.evaluate(detect, page) is expected
+
+    def test_scoring(self):
+        rules = [
+            {"id": "a", "category": "c", "severity": "critical",
+             "confidence": "high", "detect": {"field": "title", "condition": "empty"},
+             "why": "w", "fix": {"guidance": "g"}},
+            {"id": "b", "category": "c", "severity": "low",
+             "confidence": "high", "detect": {"field": "h2_count", "condition": "empty"},
+             "why": "w", "fix": {"guidance": "g"}},
+        ]
+        result = rule_engine.run({"title": "", "h2_count": 0}, rules)
+        assert result["score"] == 100 - 25 - 3
+        assert result["failed"] == 2
+        assert result["findings"][0]["severity"] == "critical"  # sorted first
+
+
+# ---------------------------------------------------------------------------
+# seo_lint
+# ---------------------------------------------------------------------------
+
+FIXTURE_HTML = """<html lang="en"><head>
+<title>Great Page Title That Is Long Enough</title>
+<meta name="viewport" content="width=device-width">
+</head><body>
+<h1>Topic</h1><h2>Section</h2>
+<p>""" + " ".join(["word"] * 50) + """</p>
+<img src="a.jpg">
+</body></html>"""
+
+
+class TestSeoLint:
+    def test_parse_html_fields(self):
+        page = seo_lint.parse_html(FIXTURE_HTML, "https://x.com")
+        assert page["title"].startswith("Great Page")
+        assert page["h1_count"] == 1
+        assert page["images_total"] == 1
+        assert page["images_missing_alt"] == 1
+        assert page["has_viewport"] is True
+        assert page["html_lang"] == "en"
+        assert page["first_h2_para_words"] == 50
+
+    def test_lint_local_skips_url_rules(self):
+        rules = rule_engine.load_rules()
+        page = seo_lint.parse_html(FIXTURE_HTML, "some/local/file.html")
+        results = seo_lint.lint_pages([page], rules, None, local=True)
+        fired_ids = {f["id"] for r in results for f in r["findings"]}
+        assert "page-not-https" not in fired_ids
+        assert "images-missing-alt" in fired_ids
+
+    def test_min_score_gate(self, tmp_path, monkeypatch, capsys):
+        f = tmp_path / "p.html"
+        f.write_text(FIXTURE_HTML, encoding="utf-8")
+        rc = seo_lint.main(["--file", str(f), "--min-score", "100"])
+        assert rc == 1   # fixture page has findings, so any gate fails
+        rc = seo_lint.main(["--file", str(f), "--min-score", "0"])
+        assert rc == 0   # no page can score below 0
+
+    def test_good_page_scores_high(self, tmp_path):
+        good = ("<html lang=\"en\"><head><title>"
+                + "T" * 55 + "</title>"
+                + '<meta name="description" content="' + "d" * 140 + '">'
+                + '<meta name="viewport" content="width=device-width">'
+                + '<link rel="canonical" href="https://x.com/p">'
+                + '<script type="application/ld+json">'
+                + '{"@context":"https://schema.org","@type":"Article"}'
+                + "</script></head><body>"
+                + "<h1>Topic</h1><h2>Section</h2><p>"
+                + " ".join(["word"] * 350)
+                + '</p><img src="a.jpg" alt="descriptive">'
+                + '<a href="/one">1</a><a href="/two">2</a>'
+                + '<a href="/three">3</a>'
+                + '<a href="https://source.example/study">source</a>'
+                + "</body></html>")
+        page = seo_lint.parse_html(good, "https://x.com/p")
+        rules = rule_engine.load_rules()
+        results = seo_lint.lint_pages([page], rules, None)
+        assert results[0]["score"] >= 90
 
 class TestSchemaGen:
     def test_basic_type(self):

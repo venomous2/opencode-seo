@@ -1,0 +1,21 @@
+id: no-external-links
+category: links
+severity: low
+confidence: low
+detect:
+  field: external_link_count
+  condition: empty
+why: >
+  Content that cites zero external sources can read as unsubstantiated:
+  every claim stands on the author's word alone. Linking out to
+  authoritative references supports trust signals and helps search engines
+  place the page in its topic context.
+fix:
+  guidance: >
+    Cite sources where claims need them, statistics, studies, official
+    documentation, linking directly to the primary source. Do not add
+    links for their own sake; each one should back a specific statement a
+    reader might want to verify.
+test:
+  expect_fail: {external_link_count: 0}
+  expect_pass: {external_link_count: 4}

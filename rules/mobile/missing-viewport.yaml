@@ -1,0 +1,20 @@
+id: missing-viewport
+category: mobile
+severity: high
+confidence: high
+detect:
+  field: has_viewport
+  condition: is_false
+why: >
+  Without a viewport meta tag, phones render the page as a zoomed-out
+  desktop layout that users must pinch and pan. Since Google indexes
+  mobile-first, a page that fails on mobile is judged that way for all
+  searches.
+fix:
+  guidance: >
+    Add <meta name="viewport" content="width=device-width, initial-scale=1">
+    to the <head> and verify the layout adapts without horizontal scrolling
+    at common phone widths.
+test:
+  expect_fail: {has_viewport: false}
+  expect_pass: {has_viewport: true}

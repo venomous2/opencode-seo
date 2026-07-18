@@ -41,26 +41,54 @@ class PageParser(HTMLParser):
         self.meta_description = ""
         self.canonical = ""
         self.h1: list[str] = []
+        self.h2_count = 0
         self.links: list[str] = []
+        self.internal_link_count = 0
+        self.external_link_count = 0
+        self.images_total = 0
+        self.images_missing_alt = 0
+        self.schema_blocks = 0
+        self.schema_types: list[str] = []
+        self.has_viewport = False
+        self.html_lang = ""
         self.noindex = False
         self.word_count = 0
+        self.first_h2_para_words = 0  # answer-block heuristic
         self._in_title = False
         self._in_h1 = False
+        self._in_jsonld = False
+        self._jsonld_parts: list[str] = []
+        self._seen_h2 = False
+        self._capture_para = False
+        self._para_done = False
+        self._para_parts: list[str] = []
         self._text_parts: list[str] = []
         self._skip_depth = 0  # inside script/style
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         attr = dict(attrs)
+        if tag == "html" and attr.get("lang"):
+            self.html_lang = attr["lang"].strip()
         if tag == "title":
             self._in_title = True
         elif tag == "h1":
             self._in_h1 = True
+        elif tag == "h2":
+            self._seen_h2 = True
+            self.h2_count += 1
+        elif tag == "p" and self._seen_h2 and not self._para_done:
+            self._capture_para = True
         elif tag in ("script", "style", "noscript"):
             self._skip_depth += 1
+            if tag == "script" and (attr.get("type") or "").lower() == "application/ld+json":
+                self._in_jsonld = True
+                self._jsonld_parts = []
         elif tag == "meta":
             name = (attr.get("name") or attr.get("property") or "").lower()
             if name == "description":
                 self.meta_description = (attr.get("content") or "").strip()
+            elif name == "viewport":
+                self.has_viewport = True
             elif name == "robots" and "noindex" in (attr.get("content") or "").lower():
                 self.noindex = True
         elif tag == "link":
@@ -69,20 +97,48 @@ class PageParser(HTMLParser):
                 self.canonical = attr["href"].strip()
         elif tag == "a" and attr.get("href"):
             self.links.append(attr["href"])
+        elif tag == "img":
+            self.images_total += 1
+            if not (attr.get("alt") or "").strip():
+                self.images_missing_alt += 1
 
     def handle_endtag(self, tag: str) -> None:
         if tag == "title":
             self._in_title = False
         elif tag == "h1":
             self._in_h1 = False
+        elif tag == "p" and self._capture_para:
+            self._capture_para = False
+            self._para_done = True
         elif tag in ("script", "style", "noscript") and self._skip_depth:
             self._skip_depth -= 1
+            if tag == "script" and self._in_jsonld:
+                self._in_jsonld = False
+                self.schema_blocks += 1
+                self._extract_schema_types("".join(self._jsonld_parts))
+
+    def _extract_schema_types(self, raw: str) -> None:
+        try:
+            data = json.loads(raw)
+        except (json.JSONDecodeError, ValueError):
+            return
+        for match in re.findall(r'"@type"\s*:\s*(?:"([^"]+)"|\[([^\]]+)\])',
+                                json.dumps(data)):
+            if match[0]:
+                self.schema_types.append(match[0])
+            elif match[1]:
+                self.schema_types.extend(
+                    t.strip().strip('"') for t in match[1].split(","))
 
     def handle_data(self, data: str) -> None:
         if self._in_title:
             self.title += data
         if self._in_h1:
             self.h1.append(data.strip())
+        if self._in_jsonld:
+            self._jsonld_parts.append(data)
+        if self._capture_para:
+            self._para_parts.append(data)
         if self._skip_depth == 0:
             self._text_parts.append(data)
 
@@ -91,6 +147,8 @@ class PageParser(HTMLParser):
         self.word_count = len(re.findall(r"\w+", text))
         self.title = " ".join(self.title.split())
         self.h1 = [" ".join(h.split()) for h in self.h1 if h.strip()]
+        para_text = " ".join(" ".join(self._para_parts).split())
+        self.first_h2_para_words = len(re.findall(r"\w+", para_text))
 
 
 def fetch(url: str, timeout: int) -> tuple[int, str, str]:
@@ -151,6 +209,13 @@ def crawl(start_url: str, max_pages: int, delay: float, timeout: int,
                 parser.finish()
             except Exception:  # noqa: BLE001 - tolerate malformed HTML
                 pass
+            for href in parser.links:
+                absolute = urllib.parse.urljoin(url, href)
+                link_host = urllib.parse.urlparse(absolute).netloc.lower()
+                if link_host == host:
+                    parser.internal_link_count += 1
+                elif link_host:
+                    parser.external_link_count += 1
             record.update({
                 "title": parser.title,
                 "title_length": len(parser.title),
@@ -159,8 +224,18 @@ def crawl(start_url: str, max_pages: int, delay: float, timeout: int,
                 "canonical": parser.canonical,
                 "h1": parser.h1,
                 "h1_count": len(parser.h1),
+                "h2_count": parser.h2_count,
                 "word_count": parser.word_count,
                 "noindex": parser.noindex,
+                "images_total": parser.images_total,
+                "images_missing_alt": parser.images_missing_alt,
+                "schema_blocks": parser.schema_blocks,
+                "schema_types": parser.schema_types,
+                "has_viewport": parser.has_viewport,
+                "html_lang": parser.html_lang,
+                "internal_link_count": parser.internal_link_count,
+                "external_link_count": parser.external_link_count,
+                "first_h2_para_words": parser.first_h2_para_words,
             })
             for href in parser.links:
                 nxt = normalise(url, href)

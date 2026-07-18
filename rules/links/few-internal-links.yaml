@@ -1,0 +1,22 @@
+id: few-internal-links
+category: links
+severity: low
+confidence: low
+detect:
+  field: internal_link_count
+  condition: min
+  value: 3
+why: >
+  Pages with almost no internal links send weak importance signals and risk
+  becoming orphaned, because internal links are how crawlers discover pages
+  and how link equity flows through the site. Barely-linked pages rarely
+  rank well.
+fix:
+  guidance: >
+    Add contextual links from relevant, stronger pages on the site using
+    descriptive anchor text. Relevance matters more than count: a few
+    well-placed links from topically related pages beat a block of generic
+    footer links.
+test:
+  expect_fail: {internal_link_count: 1}
+  expect_pass: {internal_link_count: 12}

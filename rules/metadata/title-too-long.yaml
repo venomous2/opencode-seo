@@ -1,0 +1,20 @@
+id: title-too-long
+category: metadata
+severity: medium
+confidence: high
+detect:
+  field: title_length
+  condition: max
+  value: 65
+why: >
+  Google truncates titles at roughly 580 pixels (about 60 characters), so
+  anything beyond that is cut off in the search results. Truncation can
+  hide the words that make the result worth clicking.
+fix:
+  guidance: >
+    Rewrite the title to 50-60 characters, moving the primary keyword and
+    the most persuasive words to the front so the visible part still makes
+    sense if the end is trimmed.
+test:
+  expect_fail: {title_length: 80}
+  expect_pass: {title_length: 58}

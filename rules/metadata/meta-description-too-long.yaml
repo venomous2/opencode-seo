@@ -1,0 +1,20 @@
+id: meta-description-too-long
+category: metadata
+severity: low
+confidence: high
+detect:
+  field: meta_description_length
+  condition: max
+  value: 170
+why: >
+  Google truncates snippets at around 155-160 characters, so descriptions
+  longer than that get cut mid-sentence and the final words, often the
+  call to action, never reach the searcher.
+fix:
+  guidance: >
+    Trim the description to 120-155 characters, keeping the key message
+    and any call to action within the first 150 characters so nothing
+    essential is lost to truncation.
+test:
+  expect_fail: {meta_description_length: 195}
+  expect_pass: {meta_description_length: 150}

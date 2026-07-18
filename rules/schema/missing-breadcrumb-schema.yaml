@@ -1,0 +1,20 @@
+id: missing-breadcrumb-schema
+category: schema
+severity: low
+confidence: low
+detect:
+  field: schema_types
+  condition: list_not_contains
+  value: BreadcrumbList
+why: >
+  BreadcrumbList markup lets Google replace the raw URL in the snippet
+  with a readable breadcrumb path, which clarifies where the page sits in
+  the site and can improve click-through.
+fix:
+  guidance: >
+    Add a BreadcrumbList JSON-LD block mirroring the visible breadcrumb
+    trail, with each ListItem's position, name and absolute item URL, and
+    validate it in the Rich Results Test.
+test:
+  expect_fail: {schema_types: ["Article"]}
+  expect_pass: {schema_types: ["Article", "BreadcrumbList"]}

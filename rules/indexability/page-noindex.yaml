@@ -1,0 +1,19 @@
+id: page-noindex
+category: indexability
+severity: high
+confidence: high
+detect:
+  field: noindex
+  condition: is_true
+why: >
+  A noindex directive removes the page from search results entirely, so
+  nothing it contains can rank or earn organic traffic. That is correct for
+  utility pages, but costly if it reaches a page meant to be found.
+fix:
+  guidance: >
+    Confirm the noindex is intentional. If the page should rank, remove the
+    <meta name="robots" content="noindex"> tag and any matching X-Robots-Tag
+    header, then request reindexing in Search Console.
+test:
+  expect_fail: {noindex: true}
+  expect_pass: {noindex: false}

@@ -1,0 +1,20 @@
+id: thin-answer-block
+category: content
+severity: low
+confidence: high
+detect:
+  field: first_h2_para_words
+  condition: min
+  value: 40
+why: >
+  A substantive, self-contained paragraph directly after the first H2 gives
+  search engines a quotable answer block. Short or missing paragraphs here
+  make the page harder to lift into featured snippets and AI Overviews.
+fix:
+  guidance: >
+    Immediately below the first <h2>, write a 40-60 word paragraph that
+    answers that heading's question completely on its own, with no
+    pronouns referring back to earlier text.
+test:
+  expect_fail: {first_h2_para_words: 12}
+  expect_pass: {first_h2_para_words: 58}

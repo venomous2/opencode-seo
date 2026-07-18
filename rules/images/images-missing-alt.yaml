@@ -1,0 +1,20 @@
+id: images-missing-alt
+category: images
+severity: high
+confidence: high
+detect:
+  field: images_missing_alt
+  condition: gte
+  value: 1
+why: >
+  Images without alt text are invisible to image search, inaccessible to
+  screen readers, and waste a relevance signal. Every content image should
+  describe what it shows in plain words.
+fix:
+  guidance: >
+    Add descriptive alt text to every content image (what it shows, in a
+    natural phrase — no keyword stuffing). Purely decorative images should
+    have an empty alt="" so assistive tech skips them.
+test:
+  expect_fail: {images_missing_alt: 3}
+  expect_pass: {images_missing_alt: 0}

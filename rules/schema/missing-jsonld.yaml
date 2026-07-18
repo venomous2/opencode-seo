@@ -1,0 +1,20 @@
+id: missing-jsonld
+category: schema
+severity: high
+confidence: high
+detect:
+  field: schema_blocks
+  condition: empty
+why: >
+  JSON-LD structured data is how a page declares its entities, articles,
+  organisations, products, breadcrumbs, to search engines in a form they
+  can trust. Without it, the page relies on Google to infer everything and
+  forfeits eligibility for rich results.
+fix:
+  guidance: >
+    Add a JSON-LD block in the <head> (or just before </body>) using the
+    schema.org types that match the page, for example Article, Product or
+    BreadcrumbList, then validate it with Google's Rich Results Test.
+test:
+  expect_fail: {schema_blocks: 0}
+  expect_pass: {schema_blocks: 2}

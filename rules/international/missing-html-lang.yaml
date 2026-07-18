@@ -1,0 +1,20 @@
+id: missing-html-lang
+category: international
+severity: medium
+confidence: high
+detect:
+  field: html_lang
+  condition: empty
+why: >
+  The lang attribute tells search engines and screen readers which language
+  the content is written in. Without it, language detection is left to
+  guesswork and assistive technology may read the page with the wrong
+  pronunciation rules.
+fix:
+  guidance: >
+    Set the correct language code on the root element, for example
+    <html lang="en-GB">, matching the actual language of the page's
+    content on every template.
+test:
+  expect_fail: {html_lang: ""}
+  expect_pass: {html_lang: "en-GB"}

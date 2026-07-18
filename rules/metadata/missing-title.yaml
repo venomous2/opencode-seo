@@ -1,0 +1,18 @@
+id: missing-title
+category: metadata
+severity: critical
+confidence: high
+detect:
+  field: title
+  condition: empty
+why: >
+  The title tag is the strongest single on-page relevance signal and the
+  headline of your search snippet. A page without one gives search engines
+  nothing to rank and users nothing to click.
+fix:
+  guidance: >
+    Write a unique 50-60 character title that names the page's primary
+    topic, ideally with the main keyword near the front and the brand last.
+test:
+  expect_fail: {title: ""}
+  expect_pass: {title: "Best Coffee Grinders 2026 | Acme"}

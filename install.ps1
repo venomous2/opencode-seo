@@ -37,10 +37,15 @@ foreach ($pair in @(@(".opencode\skills", "skills"), @(".opencode\agents", "agen
     Write-Host "Installed $($pair[1]) -> $dst"
 }
 
-# --- 3. Scripts + suite home ------------------------------------------------
+# --- 3. Scripts + rules + suite home ----------------------------------------
 New-Item -ItemType Directory -Force -Path (Join-Path $suiteDir "scripts") | Out-Null
 Copy-Item -Path (Join-Path $root "scripts\*") -Destination (Join-Path $suiteDir "scripts") -Recurse -Force
 Write-Host "Installed scripts -> $suiteDir\scripts"
+if (Test-Path (Join-Path $root "rules")) {
+    Copy-Item -Path (Join-Path $root "rules") -Destination $suiteDir -Recurse -Force
+    $ruleCount = (Get-ChildItem (Join-Path $suiteDir "rules") -Recurse -Filter *.yaml).Count
+    Write-Host "Installed rules -> $suiteDir\rules ($ruleCount rules)"
+}
 
 # --- 4. Python dependencies (user-level, so `python scripts/...` works) ----
 if ($python) {
