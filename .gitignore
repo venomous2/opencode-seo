@@ -1,0 +1,13 @@
+.env
+__pycache__/
+*.pyc
+venv/
+.pytest_cache/
+SEO-AUDIT-*.md
+CONTENT-BRIEF-*.md
+CONTENT-REFRESH-*.md
+ECOMMERCE-LAUNCH-*.md
+KEYWORDS-*.md
+REPORT-*.md
+
+leebeirne-seo-audit-*.md

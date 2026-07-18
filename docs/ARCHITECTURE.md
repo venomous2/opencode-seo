@@ -1,0 +1,106 @@
+# Architecture
+
+The suite has three layers, following how OpenCode discovers skills, agents,
+and commands.
+
+## Layer 1 — Skills (`.opencode/skills/<name>/SKILL.md`)
+
+71 skills in three tiers:
+
+**Orchestrator** — `seo-suite` is the entry point. It detects user intent,
+verifies the data layer (`seo_config.py status`), loads project memory, and
+routes to a workflow or atomic skill.
+
+**Workflows (4)** — chain atomic skills and dispatch specialist agents for
+end-to-end jobs:
+
+| Workflow | Chains |
+|---|---|
+| `workflow-site-audit` | technical + content + competitive + AI-search analysts in parallel |
+| `workflow-new-content` | keyword-research → serp-analysis → competitor outlines → content-brief → AEO layer → checklist |
+| `workflow-ecommerce-launch` | keyword mapping → marketplace intel → category/product specs → schema → supporting content |
+| `workflow-content-refresh` | inventory → decay detection → overlap scan → triage → refresh specs → queue |
+
+**Atomic skills (66)** — each does one focused job. Grouped into 8
+collections (Foundation, Content Strategy, Content Optimization, Technical,
+AI Search, Competitive, Local & Commerce, Automation).
+
+### Skill conventions
+
+Every SKILL.md follows the same contract:
+- Frontmatter: `name` (matches folder) + `description` (trigger keywords).
+- Never fabricate metrics — live numbers come from `dfs_client.py`.
+- Findings with evidence → prioritized recommendations with a one-line "why"
+  → single best next step.
+- Long reports are written to files; chat output stays concise.
+
+## Layer 2 — Agents (`.opencode/agents/*.md`)
+
+Four subagent-mode specialists dispatched in parallel by workflows:
+
+- `seo-technical-analyst` — indexability, rendering, CWV
+- `seo-content-analyst` — metadata, headings, quality, E-E-A-T
+- `seo-competitive-analyst` — SERP landscape, keyword/backlink gaps
+- `seo-ai-search-analyst` — citability, answer blocks, AI crawler access
+
+Each returns a fixed compact format (findings table, top fixes, pillar
+score) so the orchestrator can synthesize a 0-100 site score.
+
+## Layer 3 — Data layer (`scripts/*.py`)
+
+| Script | Role |
+|---|---|
+| `dfs_client.py` | DataForSEO CLI: 17 instant commands + task-based full-site crawl (`crawl`, `crawl-start`, `crawl-status`, `crawl-pages`) |
+| `google_client.py` | Optional tiers: pagespeed, crux, crux-history, gsc-queries, gsc-inspect, gsc-sitemaps, ga4-organic |
+| `seo_config.py` | Credential resolution (env → .env → user config) + `status` report |
+| `cache.py` | Disk response cache with per-endpoint TTLs |
+| `cost_ledger.py` | JSONL ledger of every billed DataForSEO call |
+| `drift_store.py` | Timestamped per-domain SEO snapshots + compare |
+| `site_crawler.py` | Free built-in polite mini crawler (< 200 pages) |
+| `log_analyzer.py` | Access-log bot/crawl behaviour analysis |
+| `report_build.py` | Markdown → branded standalone HTML reports |
+| `schema_gen.py` | JSON-LD generator for 18 schema.org types |
+| `project_memory.py` | `seo-project.yml` + per-client profiles (clients/*.yml) |
+| `mcp_server.py` | Optional MCP server (10 DataForSEO tools) |
+| `setup_wizard.py` | Interactive first-time setup |
+
+Skills call these via bash and parse the JSON output. The scripts are
+installed to `~/.config/opencode/seo-suite/scripts/`; skills reference them
+as `python scripts/<name>.py` from the project root.
+
+### Cross-cutting services
+
+- **Cache**: every instant DataForSEO call checks the disk cache first
+  (TTLs per endpoint; `--no-cache` bypasses). Saves real money on repeated
+  research sessions.
+- **Cost ledger**: every billed call appends one JSON line; report with
+  `python scripts/cost_ledger.py report --by command`.
+- **Drift store**: audits and monthly checks save snapshots; `compare`
+  turns two snapshots into a change report.
+
+## Project memory (`seo-project.yml`)
+
+Persistent per-project context (site, audience, brand voice, competitors,
+goals, preferred schema) that workflows load at the start. Created with
+`python scripts/project_memory.py --init`.
+
+## Where things live after install
+
+| What | Repo | Installed |
+|---|---|---|
+| Skills | `.opencode/skills/` | `~/.config/opencode/skills/` |
+| Agents | `.opencode/agents/` | `~/.config/opencode/agents/` |
+| Commands | `.opencode/commands/` | `~/.config/opencode/commands/` |
+| Scripts | `scripts/` | `~/.config/opencode/seo-suite/scripts/` |
+| Credentials | `.env` (gitignored) | `~/.config/opencode/seo-suite/credentials.json` |
+
+## Design rules
+
+1. **DataForSEO mandatory, Google optional.** No live-data skill works by
+   guessing; Google tiers only enrich.
+2. **Skills are markdown, not code.** All logic lives in the data layer;
+   skills encode judgment and procedure.
+3. **Evidence-based AI-search posture.** The suite teaches structure and
+   citability on top of SEO fundamentals — no "rank in ChatGPT" promises.
+4. **Local-first.** Credentials never leave the machine except to the
+   official DataForSEO / Google endpoints.

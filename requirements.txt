@@ -1,0 +1,3 @@
+pyyaml>=6.0
+# Optional: only needed for Google tier 1/2 (Search Console, GA4)
+# google-auth>=2.29
