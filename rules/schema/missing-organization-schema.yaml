@@ -16,6 +16,22 @@ fix:
     JSON-LD block with name, url, logo and sameAs links to official
     profiles. This rule applies to the homepage; inner pages do not each
     need their own Organization markup.
+  patch:
+    type: jsonld
+    target: head
+    draft: true
+    requires: [url]
+    template: |
+      <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "TODO-organisation-name",
+        "url": "https://{{domain}}",
+        "logo": "TODO-https://{{domain}}/logo.png",
+        "sameAs": ["TODO-profile-url-1", "TODO-profile-url-2"]
+      }
+      </script>
 test:
   expect_fail: {schema_types: ["WebPage"]}
   expect_pass: {schema_types: ["Organization", "WebSite"]}

@@ -54,6 +54,7 @@ class PageParser(HTMLParser):
         self.noindex = False
         self.word_count = 0
         self.first_h2_para_words = 0  # answer-block heuristic
+        self.first_h2_para_text = ""  # truncated raw text (for fix drafts)
         self._in_title = False
         self._in_h1 = False
         self._in_jsonld = False
@@ -149,6 +150,7 @@ class PageParser(HTMLParser):
         self.h1 = [" ".join(h.split()) for h in self.h1 if h.strip()]
         para_text = " ".join(" ".join(self._para_parts).split())
         self.first_h2_para_words = len(re.findall(r"\w+", para_text))
+        self.first_h2_para_text = para_text[:400]
 
 
 def fetch(url: str, timeout: int) -> tuple[int, str, str]:
@@ -236,6 +238,7 @@ def crawl(start_url: str, max_pages: int, delay: float, timeout: int,
                 "internal_link_count": parser.internal_link_count,
                 "external_link_count": parser.external_link_count,
                 "first_h2_para_words": parser.first_h2_para_words,
+                "first_h2_para_text": parser.first_h2_para_text,
             })
             for href in parser.links:
                 nxt = normalise(url, href)

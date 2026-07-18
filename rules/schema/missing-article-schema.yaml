@@ -16,6 +16,23 @@ fix:
     JSON-LD block with headline, author, datePublished, dateModified and
     image. This rule only applies to editorial pages; product and category
     pages should use their own types instead.
+  patch:
+    type: jsonld
+    target: head
+    draft: true
+    requires: [url, title]
+    template: |
+      <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "{{title}}",
+        "mainEntityOfPage": "{{url}}",
+        "author": {"@type": "Person", "name": "TODO-author-name"},
+        "datePublished": "TODO-YYYY-MM-DD",
+        "dateModified": "{{date}}"
+      }
+      </script>
 test:
   expect_fail: {schema_types: ["WebPage"]}
   expect_pass: {schema_types: ["Article", "BreadcrumbList"]}

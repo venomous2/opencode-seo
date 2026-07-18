@@ -97,6 +97,53 @@ at 0. Findings are sorted critical → low.
    executed by `python scripts/rule_engine.py test` and in CI.
 3. Run `python validate.py` — it checks every rule file.
 
+## Fix patches (the fix engine)
+
+Rules may carry a machine-executable patch under `fix.patch`. The fix
+engine (`scripts/seo_fix.py`) resolves these templates against the page's
+real data and can apply them to local HTML files.
+
+```yaml
+fix:
+  guidance: >
+    Human-readable fix, as before.
+  patch:
+    type: jsonld              # title | meta | link | jsonld | html_attr
+    target: head              # head | html_tag
+    draft: true               # optional — emitted with TODO markers for a human to complete
+    requires: [url, title]    # derived values that must resolve, else the patch is skipped
+    template: |
+      <script type="application/ld+json">
+      {"@context": "https://schema.org", "@type": "WebPage",
+       "url": "{{url}}", "name": "{{title}}"}
+      </script>
+```
+
+Placeholders resolved by the engine: `{{url}}`, `{{domain}}`, `{{title}}`
+(real title, falling back to the H1-derived draft), `{{h1_first}}`,
+`{{title_draft}}`, `{{meta_draft}}` (from the first-H2 paragraph, ≤155
+chars), `{{breadcrumb_json}}` (built from the URL path), `{{date}}`,
+`{{lang}}`.
+
+Patch rules:
+
+- **Mechanical only.** The engine never invents content. Patches needing
+  human input (author names, organisation details, final copy) are emitted
+  as `draft: true` with `TODO-*` markers for a human to complete.
+- **Honest skipping.** Patches whose `requires` values can't resolve are
+  skipped with a reason — never silently half-applied.
+- **Idempotent.** Applying a patch removes its cause; re-running reports
+  "nothing to fix".
+
+```bash
+python scripts/seo_fix.py --url https://example.com/page --format text
+python scripts/seo_fix.py --file page.html --base-url https://example.com/page --apply
+python scripts/seo_fix.py --file page.html --only missing-canonical --apply
+```
+
+`--apply` writes a `.bak` backup first, rewrites the file, then re-lints
+to show the new score and any remaining (human) findings.
+
 ## CLI reference
 
 ```bash

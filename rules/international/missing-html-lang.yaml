@@ -15,6 +15,10 @@ fix:
     Set the correct language code on the root element, for example
     <html lang="en-GB">, matching the actual language of the page's
     content on every template.
+  patch:
+    type: html_attr
+    target: html_tag
+    template: 'lang="{{lang}}"'
 test:
   expect_fail: {html_lang: ""}
   expect_pass: {html_lang: "en-GB"}

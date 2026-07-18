@@ -15,6 +15,20 @@ fix:
     Add a JSON-LD block in the <head> (or just before </body>) using the
     schema.org types that match the page, for example Article, Product or
     BreadcrumbList, then validate it with Google's Rich Results Test.
+  patch:
+    type: jsonld
+    target: head
+    requires: [url, title]
+    template: |
+      <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "@id": "{{url}}#webpage",
+        "url": "{{url}}",
+        "name": "{{title}}"
+      }
+      </script>
 test:
   expect_fail: {schema_blocks: 0}
   expect_pass: {schema_blocks: 2}

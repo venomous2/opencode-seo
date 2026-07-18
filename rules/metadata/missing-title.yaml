@@ -13,6 +13,12 @@ fix:
   guidance: >
     Write a unique 50-60 character title that names the page's primary
     topic, ideally with the main keyword near the front and the brand last.
+  patch:
+    type: title
+    target: head
+    draft: true
+    requires: [h1_first]
+    template: "<title>{{title_draft}}</title>"
 test:
   expect_fail: {title: ""}
   expect_pass: {title: "Best Coffee Grinders 2026 | Acme"}

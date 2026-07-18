@@ -15,6 +15,14 @@ fix:
     Add a BreadcrumbList JSON-LD block mirroring the visible breadcrumb
     trail, with each ListItem's position, name and absolute item URL, and
     validate it in the Rich Results Test.
+  patch:
+    type: jsonld
+    target: head
+    requires: [url]
+    template: |
+      <script type="application/ld+json">
+      {{breadcrumb_json}}
+      </script>
 test:
   expect_fail: {schema_types: ["Article"]}
   expect_pass: {schema_types: ["Article", "BreadcrumbList"]}

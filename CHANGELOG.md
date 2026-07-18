@@ -3,6 +3,30 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.5.0] - 2026-07-18
+
+The fix engine: lint findings become concrete patches.
+
+### Added
+- **Fix engine** (`scripts/seo_fix.py`): rules with `fix.patch` specs get
+  their templates resolved against real page data — canonical, meta
+  description draft, title draft, viewport, html lang, WebPage/Article/
+  Organization/BreadcrumbList JSON-LD (breadcrumbs auto-built from the URL
+  path). `--dry-run` prints patches with ready/skipped status; `--apply`
+  rewrites local HTML (with `.bak` backup) and re-lints to prove the new
+  score. Drafts carry `TODO-*` markers — the engine never invents content.
+  Fully idempotent.
+- 9 rules now carry patch specs (metadata ×2, indexability, mobile,
+  international, schema ×4, plus the JSON-LD base rule)
+- 8 new tests (template resolution, breadcrumbs, meta drafts, apply +
+  idempotency, HTML escaping; 71 total)
+- Parser also captures the first-H2 paragraph text (drives meta
+  description drafts)
+
+### Changed
+- `seo-lint` skill now runs `seo_fix.py` for mechanical fixes before
+  escalating to human judgment fixes
+
 ## [0.4.0] - 2026-07-18
 
 The deterministic core: rule engine + SEO linting.

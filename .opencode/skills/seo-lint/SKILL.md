@@ -36,8 +36,19 @@ python scripts/rule_engine.py test                 # self-test all rules
 3. **Contextualise** — rules are page-type-blind by design. Dismiss
    low-confidence rules that don't apply (e.g. `missing-article-schema` on
    a product page, `page-noindex` on a deliberate noindex) and say why.
-4. **Fix mechanically where possible** — schema gaps can be generated
-   immediately with `python scripts/schema_gen.py <type> --field ...`.
+4. **Fix mechanically where possible** — run the fix engine to generate
+   concrete patches (JSON-LD, canonical, meta description draft, viewport,
+   html lang) and apply them to local files:
+
+   ```
+   python scripts/seo_fix.py --url <url> --format text        # dry-run
+   python scripts/seo_fix.py --file <page.html> --base-url <prod-url> --apply
+   ```
+
+   `--apply` writes a `.bak` backup, rewrites the file, and re-lints to
+   show the new score. Draft patches contain TODO markers — complete them
+   before publishing. Schema gaps can also be generated directly with
+   `python scripts/schema_gen.py <type> --field ...`.
 5. **Re-lint after fixes** to confirm the score improved.
 
 ## CI usage

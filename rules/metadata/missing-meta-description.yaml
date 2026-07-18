@@ -14,6 +14,12 @@ fix:
     Write a unique 120-155 character meta description that summarises the
     page's value, includes the primary keyword naturally, and gives the
     searcher a reason to click.
+  patch:
+    type: meta
+    target: head
+    draft: true
+    requires: [meta_draft]
+    template: '<meta name="description" content="{{meta_draft}}">'
 test:
   expect_fail: {meta_description: ""}
   expect_pass: {meta_description: "Compare the best coffee grinders of 2026, tested side by side for grind consistency, noise and price."}

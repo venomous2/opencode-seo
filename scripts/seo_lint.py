@@ -72,6 +72,7 @@ def parse_html(html_text: str, url: str = "") -> dict[str, Any]:
         "internal_link_count": parser.internal_link_count,
         "external_link_count": parser.external_link_count,
         "first_h2_para_words": parser.first_h2_para_words,
+        "first_h2_para_text": parser.first_h2_para_text,
     }
 
 

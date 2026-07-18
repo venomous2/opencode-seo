@@ -14,6 +14,11 @@ fix:
     Add <link rel="canonical" href="https://example.com/this-page"> in the
     <head>, pointing at the page's own absolute URL (or the preferred
     version if this page duplicates another).
+  patch:
+    type: link
+    target: head
+    requires: [url]
+    template: '<link rel="canonical" href="{{url}}">'
 test:
   expect_fail: {canonical: ""}
   expect_pass: {canonical: "https://example.com/page"}

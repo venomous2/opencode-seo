@@ -25,6 +25,7 @@ import report_build  # noqa: E402
 import rule_engine  # noqa: E402
 import schema_gen  # noqa: E402
 import seo_config  # noqa: E402
+import seo_fix  # noqa: E402
 import seo_lint  # noqa: E402
 
 
@@ -520,8 +521,94 @@ class TestReportBuild:
 
 
 # ---------------------------------------------------------------------------
-# project_memory
+# seo_fix
 # ---------------------------------------------------------------------------
+
+class TestSeoFix:
+    PAGE = {
+        "url": "https://acme.example/gear/best-grinders",
+        "title": "",
+        "h1": ["Best Grinders Guide"],
+        "first_h2_para_text": "The best grinder for most people is a burr "
+                              "grinder with consistent particle size.",
+        "h2_count": 1, "word_count": 400, "has_viewport": False,
+        "html_lang": "", "canonical": "", "schema_blocks": 0,
+        "schema_types": [], "images_missing_alt": 0, "noindex": False,
+        "internal_link_count": 5, "external_link_count": 1,
+        "title_length": 0, "meta_description": "",
+        "meta_description_length": 0, "h1_count": 1, "images_total": 0,
+        "status": 200, "first_h2_para_words": 14,
+    }
+
+    def test_breadcrumb_json(self):
+        crumb = seo_fix.build_breadcrumb_json("https://acme.example/gear/best-grinders")
+        items = crumb["itemListElement"]
+        assert items[0]["name"] == "Home"
+        assert items[1]["name"] == "Gear"
+        assert items[2]["item"] == "https://acme.example/gear/best-grinders"
+        assert crumb["@type"] == "BreadcrumbList"
+
+    def test_meta_draft_truncation(self):
+        page = {"first_h2_para_text": " ".join(["word"] * 60), "title": "T"}
+        draft = seo_fix.make_meta_draft(page)
+        assert 50 <= len(draft) <= 155
+        assert not draft.endswith(" ")
+
+    def test_meta_draft_fallback_to_title(self):
+        assert seo_fix.make_meta_draft({"first_h2_para_text": "",
+                                        "title": "Hello"}) == "Hello"
+
+    def test_derive_title_falls_back_to_draft(self):
+        values = seo_fix.derive_values(self.PAGE, "", "en")
+        assert values["title"] == "Best Grinders Guide | acme.example"
+
+    def test_resolve_ready_and_skipped(self):
+        rules = rule_engine.load_rules()
+        by_id = {r["id"]: r for r in rules}
+        values = seo_fix.derive_values(self.PAGE, "", "en")
+        canonical = seo_fix.resolve_patch(by_id["missing-canonical"], values)
+        assert canonical["status"] == "ready"
+        assert "https://acme.example/gear/best-grinders" in canonical["content"]
+        no_url = seo_fix.resolve_patch(by_id["missing-canonical"],
+                                       {**values, "url": ""})
+        assert no_url["status"] == "skipped"
+        assert "missing required values" in no_url["reason"]
+
+    def test_collect_patches_only_fired_rules(self):
+        rules = rule_engine.load_rules()
+        patches = seo_fix.collect_patches(self.PAGE, rules, "", "en")
+        ids = {p["rule_id"] for p in patches}
+        assert "missing-title" in ids and "missing-canonical" in ids
+        assert "images-missing-alt" not in ids  # rule fired? no, alt is fine
+        assert "page-noindex" not in ids        # rule not fired
+
+    def test_apply_and_idempotency(self):
+        html = ('<html><head></head><body><h1>Best Grinders Guide</h1>'
+                "<h2>Which one?</h2><p>"
+                + " ".join(["word"] * 60) + "</p></body></html>")
+        rules = rule_engine.load_rules()
+        page = seo_lint.parse_html(html, "https://acme.example/p")
+        patches = seo_fix.collect_patches(page, rules, "https://acme.example/p", "en")
+        ready = [p for p in patches if p["status"] == "ready"]
+        assert ready
+        new_html, applied = seo_fix.apply_patches(html, ready)
+        assert "missing-canonical" in applied
+        assert "missing-title" in applied
+        assert "missing-viewport" in applied
+        assert 'lang="en"' in new_html
+        assert "<title>Best Grinders Guide | acme.example</title>" in new_html
+        # idempotency: a second pass has nothing to do
+        page2 = seo_lint.parse_html(new_html, "https://acme.example/p")
+        patches2 = seo_fix.collect_patches(page2, rules, "https://acme.example/p", "en")
+        assert patches2 == []
+
+    def test_html_escaping_in_attributes(self):
+        page = {**self.PAGE, "h1": ['Best "Quoted" Grinders']}
+        values = seo_fix.derive_values(page, "", "en")
+        rules = rule_engine.load_rules()
+        by_id = {r["id"]: r for r in rules}
+        patch = seo_fix.resolve_patch(by_id["missing-title"], values)
+        assert "&quot;" in patch["content"]
 
 class TestProjectMemory:
     def test_client_path(self, tmp_path):
