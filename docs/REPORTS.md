@@ -4,6 +4,22 @@ Any suite markdown report (audit, brief, roadmap, quarterly review) can be
 rendered into a branded, standalone HTML file — one file, no JavaScript, no
 dependencies, ready to email or print to PDF from the browser.
 
+## Where reports are saved
+
+Skills write generated files to the directory named by the
+`SEO_REPORTS_DIR` environment variable, in a subfolder per domain/topic:
+
+```
+%SEO_REPORTS_DIR%\travelkrakow.com\SEO-AUDIT-travelkrakow.com-2026-07-18.md
+```
+
+If `SEO_REPORTS_DIR` is unset, reports land in the current working
+directory. Set it once (user level, persists across sessions):
+
+```powershell
+[Environment]::SetEnvironmentVariable("SEO_REPORTS_DIR", "C:\path\to\SEO Audits", "User")
+```
+
 ## Usage
 
 ```bash

@@ -55,3 +55,7 @@ schema) with evidence, then prioritized recommendations (critical / high /
 medium / low) each with a one-line "why", then the single best next step.
 Write the full review to `ONPAGE-<slug>-<date>.md` when it runs long;
 chat carries the scorecard and top 5 actions.
+
+## Output location
+
+Save generated files to the SEO reports directory - `%SEO_REPORTS_DIR%\<name>\` on Windows, `$SEO_REPORTS_DIR/<name>/` on macOS/Linux - when the `SEO_REPORTS_DIR` environment variable is set; otherwise the current working directory. Create the subfolder if it doesn't exist.

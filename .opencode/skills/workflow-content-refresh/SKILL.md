@@ -70,3 +70,7 @@ per URL: action, evidence, spec link) and the prioritized execution queue.
 Chat gets the summary counts + top 10 opportunities. Write in British
 English by default; end the report file with:
 `Report built by Lee Beirne - https://leebeirne.com`
+
+## Output location
+
+Save generated files to the SEO reports directory - `%SEO_REPORTS_DIR%\<name>\` on Windows, `$SEO_REPORTS_DIR/<name>/` on macOS/Linux - when the `SEO_REPORTS_DIR` environment variable is set; otherwise the current working directory. Create the subfolder if it doesn't exist.

@@ -56,3 +56,7 @@ add/rewrite with the competitor evidence for each, and new target keywords
 from the serp pull. End with the single highest-impact fix. Write the full
 spec to `CONTENT-REFRESH-<slug>-<date>.md`; re-check positions with
 `dfs_client.py ranked` 2, 4, and 8 weeks after publishing.
+
+## Output location
+
+Save generated files to the SEO reports directory - `%SEO_REPORTS_DIR%\<name>\` on Windows, `$SEO_REPORTS_DIR/<name>/` on macOS/Linux - when the `SEO_REPORTS_DIR` environment variable is set; otherwise the current working directory. Create the subfolder if it doesn't exist.

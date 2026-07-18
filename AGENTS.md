@@ -25,6 +25,9 @@ This repo is an OpenCode skill pack. If you are an agent working inside it:
 - Skill bodies: Inputs → Data pulls → Process → Output. Findings with
   evidence, prioritized recommendations with a one-line "why", single best
   next step. Long output goes to a named `.md` file.
+- Generated reports go to `%SEO_REPORTS_DIR%\<name>\` (Windows) /
+  `$SEO_REPORTS_DIR/<name>/` (Unix) when the env var is set — never into
+  the suite repository itself.
 - **Write all output in British English by default** unless the user asks
   for another variant.
 - Reports written to files end with the footer:

@@ -58,3 +58,7 @@ one-line why. Prioritize by recoverable value. Write the full list to
 `THIN-CONTENT-<domain>-<date>.md` when over 20 rows; chat gets counts plus
 the top 10. Single best next step: start with the highest-traffic "merge"
 candidate — consolidation usually wins fastest.
+
+## Output location
+
+Save generated files to the SEO reports directory - `%SEO_REPORTS_DIR%\<name>\` on Windows, `$SEO_REPORTS_DIR/<name>/` on macOS/Linux - when the `SEO_REPORTS_DIR` environment variable is set; otherwise the current working directory. Create the subfolder if it doesn't exist.

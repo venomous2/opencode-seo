@@ -53,3 +53,7 @@ A scorecard table (dimension | score | evidence | best competitor) followed
 by prioritized fixes: critical / high / medium, each with a one-line why.
 End with the single change that would most improve the page. Write the full
 review to `CONTENT-REVIEW-<slug>-<date>.md` when it exceeds ~100 lines.
+
+## Output location
+
+Save generated files to the SEO reports directory - `%SEO_REPORTS_DIR%\<name>\` on Windows, `$SEO_REPORTS_DIR/<name>/` on macOS/Linux - when the `SEO_REPORTS_DIR` environment variable is set; otherwise the current working directory. Create the subfolder if it doesn't exist.

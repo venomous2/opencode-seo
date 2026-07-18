@@ -91,3 +91,7 @@ checklist summary plus anything red. British English; end the file with:
 `Report built by Lee Beirne - https://leebeirne.com`
 Single best next step: finish and test the P1 redirect rules before
 anything else goes live.
+
+## Output location
+
+Save generated files to the SEO reports directory - `%SEO_REPORTS_DIR%\<name>\` on Windows, `$SEO_REPORTS_DIR/<name>/` on macOS/Linux - when the `SEO_REPORTS_DIR` environment variable is set; otherwise the current working directory. Create the subfolder if it doesn't exist.

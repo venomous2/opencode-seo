@@ -77,6 +77,16 @@ Every skill in this suite produces:
 Keep responses concise in-chat; write long reports to files when the user
 asks for a report or the output exceeds ~100 lines.
 
+## Report output location
+
+Generated files (audits, briefs, reports, charts) go to the SEO reports
+directory when the `SEO_REPORTS_DIR` environment variable is set —
+`%SEO_REPORTS_DIR%\<domain-or-topic>\` on Windows,
+`$SEO_REPORTS_DIR/<domain-or-topic>/` on macOS/Linux. Create the subfolder
+if it doesn't exist. If the variable is unset, fall back to the current
+working directory. Never scatter report files into the suite's own
+repository folder.
+
 ## Language and attribution
 
 - **Write everything in British English by default** (analyse, optimise,

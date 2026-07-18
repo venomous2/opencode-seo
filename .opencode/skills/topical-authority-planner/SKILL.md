@@ -57,3 +57,7 @@ best competitor rank | combined volume | priority (P1-P3). Then:
 
 Write the full plan to `TOPICAL-AUTHORITY-<niche>-<date>.md`; chat shows
 the coverage score and the top 10 gaps only.
+
+## Output location
+
+Save generated files to the SEO reports directory - `%SEO_REPORTS_DIR%\<name>\` on Windows, `$SEO_REPORTS_DIR/<name>/` on macOS/Linux - when the `SEO_REPORTS_DIR` environment variable is set; otherwise the current working directory. Create the subfolder if it doesn't exist.

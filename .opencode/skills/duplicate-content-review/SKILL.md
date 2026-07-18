@@ -60,3 +60,7 @@ Duplication table: URL group | cause | evidence | fix | priority (by
 impressions/links at stake). Write `DUPLICATE-CONTENT-<domain>-<date>.md`
 for large sites. End with the single most damaging case — usually a live
 http or www variant splitting link equity.
+
+## Output location
+
+Save generated files to the SEO reports directory - `%SEO_REPORTS_DIR%\<name>\` on Windows, `$SEO_REPORTS_DIR/<name>/` on macOS/Linux - when the `SEO_REPORTS_DIR` environment variable is set; otherwise the current working directory. Create the subfolder if it doesn't exist.

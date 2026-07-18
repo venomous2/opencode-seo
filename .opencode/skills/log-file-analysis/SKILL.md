@@ -73,3 +73,7 @@ the analyser output, it does not exist.
   parameter URLs or bot-hit 404s.
 - State the caveat: one log file is a sample. Confirm big claims against
   a second period before making drastic robots.txt changes.
+
+## Output location
+
+Save generated files to the SEO reports directory - `%SEO_REPORTS_DIR%\<name>\` on Windows, `$SEO_REPORTS_DIR/<name>/` on macOS/Linux - when the `SEO_REPORTS_DIR` environment variable is set; otherwise the current working directory. Create the subfolder if it doesn't exist.

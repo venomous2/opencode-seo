@@ -60,3 +60,7 @@ and 2-3 lateral spoke-to-spoke links where topically adjacent. Then:
 
 Write the full map to `CLUSTERS-<topic>-<date>.md`; chat summarizes the
 top 3 clusters only.
+
+## Output location
+
+Save generated files to the SEO reports directory - `%SEO_REPORTS_DIR%\<name>\` on Windows, `$SEO_REPORTS_DIR/<name>/` on macOS/Linux - when the `SEO_REPORTS_DIR` environment variable is set; otherwise the current working directory. Create the subfolder if it doesn't exist.

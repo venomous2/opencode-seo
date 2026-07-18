@@ -101,3 +101,7 @@ python scripts/report_build.py QBR-<client>-<year>-Q<n>.md -o QBR-<client>-<year
 - Single best next step: the first next-quarter priority, stated plainly.
 - British English throughout; no hype — the review's credibility is the
   deliverable.
+
+## Output location
+
+Save generated files to the SEO reports directory - `%SEO_REPORTS_DIR%\<name>\` on Windows, `$SEO_REPORTS_DIR/<name>/` on macOS/Linux - when the `SEO_REPORTS_DIR` environment variable is set; otherwise the current working directory. Create the subfolder if it doesn't exist.

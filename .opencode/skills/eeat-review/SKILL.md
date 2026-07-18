@@ -54,3 +54,7 @@ author with linked credentials — anonymous YMYL content is the top
 trust blocker." End with the single fastest credible win (usually author
 pages or first-hand evidence in the top article). Write the full audit to
 `EEAT-<domain>-<date>.md`.
+
+## Output location
+
+Save generated files to the SEO reports directory - `%SEO_REPORTS_DIR%\<name>\` on Windows, `$SEO_REPORTS_DIR/<name>/` on macOS/Linux - when the `SEO_REPORTS_DIR` environment variable is set; otherwise the current working directory. Create the subfolder if it doesn't exist.
