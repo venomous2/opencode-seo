@@ -39,7 +39,7 @@ Contributions are welcome. The suite is deliberately simple: markdown skills
   top of SEO fundamentals.
 - Python: stdlib + `requests`/`pyyaml` only. Keep CLIs JSON-in/JSON-out.
 - Reports written to files carry the footer:
-  `Built by Lee Beirne · OpenCode SEO Suite — inspired by AgriciDaniel/claude-seo`
+  `Report built by Lee Beirne - https://leebeirne.com`
 
 ## Testing
 

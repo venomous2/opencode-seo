@@ -69,4 +69,4 @@ Write `CONTENT-REFRESH-<domain>-<date>.md` with the triage table (one row
 per URL: action, evidence, spec link) and the prioritized execution queue.
 Chat gets the summary counts + top 10 opportunities. Write in British
 English by default; end the report file with:
-`Built by Lee Beirne · OpenCode SEO Suite — inspired by AgriciDaniel/claude-seo`
+`Report built by Lee Beirne - https://leebeirne.com`

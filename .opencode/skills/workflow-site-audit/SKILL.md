@@ -69,8 +69,16 @@ one-line "why it matters".
    Technical (30%), Content (25%), Authority (20%), UX/CWV (15%), AI Search (10%).
 2. Order recommendations by impact × effort. Every recommendation carries:
    the observation, why it matters, the fix, and how to verify it worked.
-3. Write `SEO-AUDIT-<domain>-<date>.md` with: executive summary, scorecard,
-   findings by severity, 30/60/90-day roadmap, appendix of raw data.
+3. Write `SEO-AUDIT-<domain>-<date>.md` with: executive summary, headline
+   stats block, scorecard, findings by severity, **recommendations & actions
+   table**, 30/60/90-day roadmap, appendix of raw data.
+   Include ```` ```chart ```` blocks so the HTML version tells the story
+   visually (see the seo-report-writer skill for the chart syntax):
+   - `stats` cards after the summary (referring domains, keywords ranking,
+     indexed pages — with deltas if a previous drift snapshot exists)
+   - `donut` for the overall score, `bar` for the five pillar scores
+   - `bar` for top keyword movers and CWV values vs thresholds
+   - `line` for trends when drift history exists
 4. Save a drift snapshot so the next audit can show what changed:
 
 ```
@@ -89,4 +97,4 @@ echo '{"scores": {"technical": X, "content": X, "authority": X, "cwv": X, "ai_se
   goes in the report file.
 - Write everything in British English by default unless the user asks for
   another variant. End the report file with:
-  `Built by Lee Beirne · OpenCode SEO Suite — inspired by AgriciDaniel/claude-seo`
+  `Report built by Lee Beirne - https://leebeirne.com`

@@ -68,7 +68,7 @@ the analyser output, it does not exist.
 - Prioritised fixes with a one-line "why" each
 - For large logs, write `LOGS-<domain>-<date>.md` with the full tables
   and end it with:
-  `Built by Lee Beirne · OpenCode SEO Suite — inspired by AgriciDaniel/claude-seo`
+  `Report built by Lee Beirne - https://leebeirne.com`
 - Single best next step: the largest block of wasted requests — usually
   parameter URLs or bot-hit 404s.
 - State the caveat: one log file is a sample. Confirm big claims against

@@ -75,4 +75,4 @@ numbers.
   best next step (usually: run the pilot cohort before any full build)
 
 Long plans go to `PSEO-PLAN-<topic>-<date>.md`. End the file with:
-`Built by Lee Beirne · OpenCode SEO Suite — inspired by AgriciDaniel/claude-seo`
+`Report built by Lee Beirne - https://leebeirne.com`

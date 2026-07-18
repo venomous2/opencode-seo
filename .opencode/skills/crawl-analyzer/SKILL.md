@@ -85,6 +85,6 @@ and example URLs:
 - Prioritised recommendation list, Critical -> Low
 - For more than ~15 findings, write `CRAWL-<domain>-<date>.md` with the
   full tables; chat gets the counts + top 10. End the file with:
-  `Built by Lee Beirne · OpenCode SEO Suite — inspired by AgriciDaniel/claude-seo`
+  `Report built by Lee Beirne - https://leebeirne.com`
 - Single best next step: the highest-severity, highest-count fix —
   usually 5xx errors, accidental noindex, or mass duplicate titles.

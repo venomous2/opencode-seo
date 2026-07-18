@@ -83,4 +83,4 @@ asks for a report or the output exceeds ~100 lines.
   colour, prioritise, whilst, etc.) unless the user asks for another
   language or variant.
 - Reports written to files end with this footer line:
-  `Built by Lee Beirne · OpenCode SEO Suite — inspired by AgriciDaniel/claude-seo`
+  `Report built by Lee Beirne - https://leebeirne.com`

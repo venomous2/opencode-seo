@@ -95,7 +95,7 @@ python scripts/report_build.py QBR-<client>-<year>-Q<n>.md -o QBR-<client>-<year
 
 - Files: the markdown report plus the rendered HTML pack. End the
   markdown file with:
-  `Built by Lee Beirne · OpenCode SEO Suite — inspired by AgriciDaniel/claude-seo`
+  `Report built by Lee Beirne - https://leebeirne.com`
 - Chat: the scorecard table, a three-line wins/losses summary, next
   quarter's top 3 priorities, and the file paths.
 - Single best next step: the first next-quarter priority, stated plainly.

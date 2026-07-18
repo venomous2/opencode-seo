@@ -3,6 +3,30 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0] - 2026-07-18
+
+Report experience overhaul.
+
+### Added
+- **Charts in reports**: fenced ```` ```chart ```` blocks render as inline
+  SVG graphs in HTML reports — `donut` (score gauges), `bar` (comparisons),
+  `line` (trends), `stats` (KPI cards with deltas)
+- **Auto table of contents** in HTML reports (from H2/H3 headings)
+- **Severity badges**: Critical/High/Medium/Low table cells render as
+  coloured pills
+- **Recommendations & actions** is now a required report section: a
+  priority/effort/impact/owner action table with quick wins flagged
+- 8 new tests for charts, badges, and TOC (34 total)
+
+### Changed
+- Report footer is now `Report built by Lee Beirne - https://leebeirne.com`
+  (replaces the previous suite attribution line in all report-producing
+  skills and docs)
+- HTML report theme rebuilt on the brand palette: teal #00E0BA, purple
+  #91008D, pink #FF3483, yellow #FFCF00
+- `workflow-site-audit` reports now include charts (stats cards, score
+  donut, pillar bars, trend lines when drift history exists)
+
 ## [0.2.0] - 2026-07-18
 
 Monitoring, crawl depth, client tooling, and new skill territory.

@@ -84,6 +84,6 @@ fabricate numbers to fill a section — omit whatever could not be pulled.
   deltas, then prioritised actions.
 - When the diff is large or spans a quarter, write
   `DRIFT-<domain>-<date>.md` with the full tables and end it with:
-  `Built by Lee Beirne · OpenCode SEO Suite — inspired by AgriciDaniel/claude-seo`
+  `Report built by Lee Beirne - https://leebeirne.com`
 - Single best next step: the one regression to investigate first —
   usually the highest-volume lost keyword or the largest score drop.

@@ -67,4 +67,4 @@ canonical, and IndexNow/submission step.
 Write the full brief to `CONTENT-BRIEF-<keyword-slug>.md` and summarise the
 keyword choice + outline + differentiators in chat. Write in British English
 by default; end the brief file with:
-`Built by Lee Beirne · OpenCode SEO Suite — inspired by AgriciDaniel/claude-seo`
+`Report built by Lee Beirne - https://leebeirne.com`

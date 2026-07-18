@@ -28,7 +28,7 @@ This repo is an OpenCode skill pack. If you are an agent working inside it:
 - **Write all output in British English by default** unless the user asks
   for another variant.
 - Reports written to files end with the footer:
-  `Built by Lee Beirne · OpenCode SEO Suite — inspired by AgriciDaniel/claude-seo`
+  `Report built by Lee Beirne - https://leebeirne.com`
 - Tone: evidence-based, no hype. Never promise "rank in ChatGPT".
 
 ## After changes

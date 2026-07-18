@@ -254,25 +254,67 @@ class TestLogAnalyzer:
 
 class TestReportBuild:
     def test_heading_and_bold(self):
-        html = report_build.md_to_html("## Hello\n\nSome **bold** text")
-        assert "<h2>Hello</h2>" in html
-        assert "<strong>bold</strong>" in html
+        body, _ = report_build.md_to_html("## Hello\n\nSome **bold** text")
+        assert "<h2 id=\"hello\">Hello</h2>" in body
+        assert "<strong>bold</strong>" in body
 
     def test_table(self):
         md = "| A | B |\n|---|---|\n| 1 | 2 |"
-        html = report_build.md_to_html(md)
-        assert "<th>A</th>" in html and "<td>2</td>" in html
+        body, _ = report_build.md_to_html(md)
+        assert "<th>A</th>" in body and "<td>2</td>" in body
+
+    def test_severity_badge(self):
+        md = "| Severity | Issue |\n|---|---|\n| Critical | Broken |\n| Low | Polish |"
+        body, _ = report_build.md_to_html(md)
+        assert 'class="badge"' in body
+        assert report_build.PINK in body   # critical colour
+        assert report_build.TEAL in body   # low colour
+
+    def test_toc_collected(self):
+        md = "## Alpha\n\nx\n\n## Beta\n\ny\n\n## Gamma\n\nz"
+        _, toc = report_build.md_to_html(md)
+        assert [t[2] for t in toc] == ["Alpha", "Beta", "Gamma"]
+
+    def test_donut_chart(self):
+        html = report_build.render_chart(
+            '{"type": "donut", "title": "Score", "value": 64, "max": 100}')
+        assert "<svg" in html and ">64<" in html
+        assert report_build.YELLOW in html  # 64% -> amber band
+
+    def test_donut_score_bands(self):
+        good = report_build.render_chart('{"type":"donut","value":80,"max":100}')
+        bad = report_build.render_chart('{"type":"donut","value":20,"max":100}')
+        assert report_build.TEAL in good
+        assert report_build.PINK in bad
+
+    def test_bar_chart(self):
+        html = report_build.render_chart(
+            '{"type": "bar", "title": "Pillars", "data": [["Technical", 74]], "max": 100}')
+        assert "bar-fill" in html and "Technical" in html
+
+    def test_line_chart(self):
+        html = report_build.render_chart(
+            '{"type": "line", "title": "Clicks", "data": [["Mar", 1], ["Apr", 2]]}')
+        assert "<polyline" in html
+
+    def test_stats_cards(self):
+        html = report_build.render_chart(
+            '{"type": "stats", "data": [["Ref domains", "312", "+18"]]}')
+        assert "stat-card" in html and "+18" in html
+
+    def test_invalid_chart_falls_back(self):
+        html = report_build.render_chart("not json")
+        assert "<pre" in html
 
     def test_build_writes_file(self, tmp_path):
         md = tmp_path / "r.md"
         md.write_text("# My Report\n\nBody text", encoding="utf-8")
         out = report_build.build(md, tmp_path / "r.html", brand="Lee Beirne",
-                                 title=None, accent="#123456",
-                                 footer=report_build.DEFAULT_FOOTER)
+                                 title=None, footer=report_build.DEFAULT_FOOTER)
         html = out.read_text(encoding="utf-8")
         assert "My Report" in html
         assert "Lee Beirne" in html
-        assert "#123456" in html
+        assert "leebeirne.com" in html
 
 
 # ---------------------------------------------------------------------------

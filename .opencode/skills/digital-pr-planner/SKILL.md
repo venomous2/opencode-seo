@@ -78,4 +78,4 @@ docs/DATAFORSEO-SETUP.md. Do not invent numbers.
   before writing any pitch)
 
 Campaign plans go to `DIGITAL-PR-<topic>-<date>.md`. End the file with:
-`Built by Lee Beirne · OpenCode SEO Suite — inspired by AgriciDaniel/claude-seo`
+`Report built by Lee Beirne - https://leebeirne.com`

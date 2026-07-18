@@ -72,4 +72,4 @@ docs/DATAFORSEO-SETUP.md. Do not invent numbers.
   the hosting page)
 
 Full video audits go to `VIDEO-SEO-<topic>-<date>.md`. End the file with:
-`Built by Lee Beirne · OpenCode SEO Suite — inspired by AgriciDaniel/claude-seo`
+`Report built by Lee Beirne - https://leebeirne.com`

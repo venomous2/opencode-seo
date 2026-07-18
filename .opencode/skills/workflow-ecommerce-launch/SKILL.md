@@ -77,4 +77,4 @@ template, and the 30-day measurement plan (rankings via
 Write `ECOMMERCE-LAUNCH-<category>-<date>.md`: keyword map, page specs,
 schema blocks, supporting content plan, checklist. Summarise in chat. Write
 in British English by default; end the report file with:
-`Built by Lee Beirne · OpenCode SEO Suite — inspired by AgriciDaniel/claude-seo`
+`Report built by Lee Beirne - https://leebeirne.com`

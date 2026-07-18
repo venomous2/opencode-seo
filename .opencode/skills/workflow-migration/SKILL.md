@@ -88,6 +88,6 @@ Write `MIGRATION-<old>-to-<new>-<date>.md`: phase checklist with status,
 the P1 URL list (equity holders), redirect map location, launch-day
 verification results, and the 8-week monitoring schedule. Chat gets the
 checklist summary plus anything red. British English; end the file with:
-`Built by Lee Beirne · OpenCode SEO Suite — inspired by AgriciDaniel/claude-seo`
+`Report built by Lee Beirne - https://leebeirne.com`
 Single best next step: finish and test the P1 redirect rules before
 anything else goes live.
