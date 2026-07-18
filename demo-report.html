@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>demo-report</title>
+<style>
+  :root { --teal: #00E0BA; --purple: #91008D; --pink: #FF3483;
+           --yellow: #FFCF00; --ink: #1e293b; --muted: #64748b; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+         color: var(--ink); line-height: 1.6; max-width: 48rem;
+         margin: 0 auto; padding: 0 1.5rem 4rem; }
+  .palette-strip { height: 6px; margin: 0 -1.5rem 2rem;
+    background: linear-gradient(90deg, var(--teal) 0 25%, var(--purple) 25% 50%,
+                                var(--pink) 50% 75%, var(--yellow) 75% 100%); }
+  .report-header { border-bottom: 3px solid var(--purple);
+                   padding-bottom: 1.2rem; margin-bottom: 1.5rem; }
+  .report-header .brand { color: var(--purple); font-weight: 700;
+                   letter-spacing: .14em; text-transform: uppercase;
+                   font-size: .8rem; }
+  .report-header h1 { margin: .35rem 0 .2rem; font-size: 2rem;
+                   line-height: 1.2; border: 0; color: var(--ink); }
+  .report-header .date { color: var(--muted); font-size: .85rem; }
+  nav.toc { background: #f8fafc; border: 1px solid #e2e8f0;
+            border-left: 4px solid var(--teal); border-radius: 8px;
+            padding: 1rem 1.4rem; margin: 0 0 2rem; font-size: .92rem; }
+  nav.toc strong { color: var(--purple); text-transform: uppercase;
+                   font-size: .75rem; letter-spacing: .1em; }
+  nav.toc ul { margin: .5rem 0 0; padding-left: 1.2rem; }
+  nav.toc li { margin: .15rem 0; }
+  nav.toc li.l3 { margin-left: 1.2rem; font-size: .88em; }
+  nav.toc a { color: var(--ink); text-decoration: none; }
+  nav.toc a:hover { color: var(--purple); }
+  h1, h2, h3, h4 { color: var(--purple); line-height: 1.3; }
+  h2 { border-bottom: 2px solid var(--teal); padding-bottom: .3rem;
+       margin-top: 2.4rem; }
+  h3 { color: var(--ink); }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0;
+          font-size: .9rem; }
+  th, td { border: 1px solid #cbd5e1; padding: .45rem .6rem;
+           text-align: left; vertical-align: top; }
+  th { background: var(--purple); color: #fff; }
+  tr:nth-child(even) td { background: #f1f5f9; }
+  .badge { color: #fff; font-weight: 700; font-size: .78rem;
+           padding: .12rem .5rem; border-radius: 999px;
+           text-transform: uppercase; letter-spacing: .04em; }
+  code { background: #f1f5f9; padding: .1rem .3rem; border-radius: 4px;
+         font-size: .85em; }
+  pre.code { background: #0f172a; color: #e2e8f0; padding: 1rem;
+             border-radius: 8px; overflow-x: auto; font-size: .82rem; }
+  pre.code code { background: none; padding: 0; }
+  blockquote { border-left: 4px solid var(--teal); margin: 1rem 0;
+               padding: .4rem 1rem; color: var(--ink);
+               background: #f0fdfb; border-radius: 0 8px 8px 0; }
+  hr { border: 0; border-top: 1px solid #e2e8f0; margin: 2rem 0; }
+  a { color: var(--purple); }
+  .chart { margin: 1.4rem 0; }
+  .chart figcaption { font-weight: 600; color: var(--ink);
+                      margin-bottom: .6rem; font-size: .95rem; }
+  .chart.donut { text-align: center; }
+  .bar-row { display: flex; align-items: center; gap: .7rem;
+             margin: .35rem 0; font-size: .88rem; }
+  .bar-label { flex: 0 0 11rem; color: var(--ink); }
+  .bar-track { flex: 1; background: #e2e8f0; border-radius: 999px;
+               height: 14px; overflow: hidden; }
+  .bar-fill { display: block; height: 100%; border-radius: 999px; }
+  .bar-value { flex: 0 0 5.5rem; text-align: right; font-weight: 600; }
+  .cmp-row { display: flex; align-items: center; gap: .7rem;
+             margin: .35rem 0; font-size: .88rem; }
+  .cmp-track { flex: 1; position: relative; background: #e2e8f0;
+               border-radius: 999px; height: 14px; }
+  .cmp-before { position: absolute; inset: 0 auto 0 0;
+                background: #94a3b8; border-radius: 999px; opacity: .55; }
+  .cmp-after { position: absolute; inset: 0 auto 0 0;
+               border-radius: 999px; height: 8px; margin-top: 3px; }
+  .cmp-delta { flex: 0 0 3rem; text-align: right; font-weight: 700; }
+  .cmp-legend { font-weight: 400; font-size: .78rem; color: var(--muted);
+                margin-left: .5rem; }
+  .cmp-legend .sw { display: inline-block; width: 10px; height: 10px;
+                    border-radius: 2px; margin: 0 .25rem 0 .6rem;
+                    vertical-align: -1px; }
+  .stat-strip { display: flex; flex-wrap: wrap; gap: .8rem; margin: 1.4rem 0; }
+  .stat-card { flex: 1 1 9rem; border: 1px solid #e2e8f0;
+               border-top: 4px solid var(--teal); border-radius: 8px;
+               padding: .8rem 1rem; background: #fff; }
+  .stat-card:nth-child(2n) { border-top-color: var(--purple); }
+  .stat-card:nth-child(3n) { border-top-color: var(--pink); }
+  .stat-card:nth-child(4n) { border-top-color: var(--yellow); }
+  .stat-label { color: var(--muted); font-size: .72rem;
+                text-transform: uppercase; letter-spacing: .08em; }
+  .stat-value { font-size: 1.7rem; font-weight: 700; color: var(--ink); }
+  .stat-delta { font-size: .85rem; font-weight: 600; }
+  .report-footer { margin-top: 3rem; padding-top: 1rem;
+                   border-top: 3px solid var(--purple);
+                   color: var(--muted); font-size: .82rem; }
+  .report-footer a { color: var(--purple); }
+  @media print {
+    body { max-width: none; padding: 0 1rem; }
+    nav.toc { display: none; }
+    h2 { page-break-after: avoid; }
+    table, pre, .chart, .stat-strip { page-break-inside: avoid; }
+  }
+  /* one-pager: tighter rhythm so the summary genuinely fits a page */
+  body.onepager { max-width: 44rem; }
+  body.onepager h2 { margin-top: 1.2rem; font-size: 1.15rem; }
+  body.onepager .chart { margin: .8rem 0; }
+  body.onepager .report-header { margin-bottom: 1rem; }
+  body.onepager table { font-size: .82rem; }
+</style>
+</head>
+<body>
+<div class="palette-strip"></div>
+<header class="report-header">
+  <div class="brand">Lee Beirne</div>
+  <h1>demo-report</h1>
+  <div class="date">18 July 2026</div>
+</header>
+<nav class="toc"><strong>Contents</strong><ul><li class="l2"><a href="#executive-summary">Executive summary</a></li><li class="l2"><a href="#findings-by-severity">Findings by severity</a></li><li class="l2"><a href="#recommendations-and-actions">Recommendations and actions</a></li><li class="l2"><a href="#appendix">Appendix</a></li></ul></nav>
+<main>
+<p>﻿# SEO Audit — demo.test</p>
+<h2 id="executive-summary">Executive summary</h2>
+<p>Scores improved across the board since the last audit. Technical fixes from last month landed; authority is the remaining gap.</p>
+<div class="stat-strip"><div class="stat-card">
+  <div class="stat-label">Keywords gained</div>
+  <div class="stat-value">1</div>
+  
+</div><div class="stat-card">
+  <div class="stat-label">Keywords lost</div>
+  <div class="stat-value">0</div>
+  
+</div><div class="stat-card">
+  <div class="stat-label">Moved up</div>
+  <div class="stat-value">1</div>
+  
+</div><div class="stat-card">
+  <div class="stat-label">Moved down</div>
+  <div class="stat-value">0</div>
+  
+</div></div>
+<figure class="chart donut">
+<svg viewBox="0 0 140 140" width="150" height="150" role="img"
+     aria-label="Overall SEO Health: 72 out of 100">
+  <circle cx="70" cy="70" r="54" fill="none" stroke="#e2e8f0" stroke-width="14"/>
+  <circle cx="70" cy="70" r="54" fill="none" stroke="#00E0BA" stroke-width="14"
+          stroke-linecap="round" stroke-dasharray="244.3 95.0"
+          transform="rotate(-90 70 70)"/>
+  <text x="70" y="68" text-anchor="middle" font-size="26"
+        font-weight="700" fill="#1e293b">72</text>
+  <text x="70" y="88" text-anchor="middle" font-size="11"
+        fill="#64748b">/ 100</text>
+</svg>
+<figcaption>Overall SEO Health</figcaption>
+</figure>
+<figure class="chart"><figcaption>Scores vs previous snapshot <span class="cmp-legend"><span class="sw" style="background:#94a3b8"></span>previous<span class="sw" style="background:#00E0BA"></span>current</span></figcaption><div class="cmp-row">
+  <span class="bar-label">Technical</span>
+  <span class="cmp-track">
+    <span class="cmp-before" style="width:70.0%"></span>
+    <span class="cmp-after" style="width:76.0%;background:#00E0BA"></span>
+  </span>
+  <span class="bar-value">70 → 76</span>
+  <span class="cmp-delta" style="color:#00E0BA">+6</span>
+</div><div class="cmp-row">
+  <span class="bar-label">Content</span>
+  <span class="cmp-track">
+    <span class="cmp-before" style="width:60.0%"></span>
+    <span class="cmp-after" style="width:68.0%;background:#FFCF00"></span>
+  </span>
+  <span class="bar-value">60 → 68</span>
+  <span class="cmp-delta" style="color:#00E0BA">+8</span>
+</div></figure>
+<figure class="chart"><figcaption>Pillar scores</figcaption><div class="bar-row">
+  <span class="bar-label">Technical</span>
+  <span class="bar-track"><span class="bar-fill" style="width:76.0%;background:#00E0BA"></span></span>
+  <span class="bar-value">76</span>
+</div><div class="bar-row">
+  <span class="bar-label">Content</span>
+  <span class="bar-track"><span class="bar-fill" style="width:68.0%;background:#FFCF00"></span></span>
+  <span class="bar-value">68</span>
+</div><div class="bar-row">
+  <span class="bar-label">Authority</span>
+  <span class="bar-track"><span class="bar-fill" style="width:45.0%;background:#FFCF00"></span></span>
+  <span class="bar-value">45</span>
+</div></figure>
+<h2 id="findings-by-severity">Findings by severity</h2>
+<table><thead><tr><th>Severity</th><th>Finding</th></tr></thead><tbody>
+<tr><td><span class="badge" style="background:#FF3483">Critical</span></td><td>Bonus page returns a soft 404</td></tr>
+<tr><td><span class="badge" style="background:#91008D">High</span></td><td>47 posts lack author schema</td></tr>
+<tr><td><span class="badge" style="background:#FFCF00">Medium</span></td><td>Hero image missing dimensions</td></tr>
+</tbody></table>
+<h2 id="recommendations-and-actions">Recommendations and actions</h2>
+<table><thead><tr><th>#</th><th>Action</th><th>Priority</th><th>Effort</th><th>Expected impact</th><th>Owner</th><th>Done</th></tr></thead><tbody>
+<tr><td>1</td><td>Fix soft 404 on /bonus</td><td><span class="badge" style="background:#FF3483">Critical</span></td><td>1h</td><td>Restores money page</td><td>Dev</td><td></td></tr>
+<tr><td>2</td><td>Add author schema to 47 posts</td><td><span class="badge" style="background:#91008D">High</span></td><td>2h</td><td>E-E-A-T + AI citability</td><td>Dev</td><td></td></tr>
+<tr><td>3</td><td>Set image dimensions</td><td><span class="badge" style="background:#FFCF00">Medium</span></td><td>30m</td><td>Stops layout shift</td><td>Dev</td><td></td></tr>
+<tr><td>4</td><td>Refresh 5 decaying posts</td><td><span class="badge" style="background:#FFCF00">Medium</span></td><td>1d</td><td>Recovers positions 4-9</td><td>Content</td><td></td></tr>
+<tr><td>5</td><td>Add FAQ block to guide</td><td><span class="badge" style="background:#00E0BA">Low</span></td><td>1h</td><td>PAA coverage</td><td>Content</td><td></td></tr>
+</tbody></table>
+<h2 id="appendix">Appendix</h2>
+<p>Raw data here.</p>
+<p>Report built by Lee Beirne - https://leebeirne.com</p>
+</main>
+<footer class="report-footer">Report built by Lee Beirne - <a href="https://leebeirne.com">https://leebeirne.com</a></footer>
+</body>
+</html>

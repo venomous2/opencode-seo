@@ -216,6 +216,35 @@ class TestDriftStore:
         assert diff["rankings"]["moved_up"][0]["keyword"] == "a"
         assert diff["backlinks"]["referring_domains"]["delta"] == 8
 
+    def test_build_chart_specs(self):
+        old = {"scores": {"technical": 70, "content": 60},
+               "rankings": [{"keyword": "a", "position": 8, "url": "/a"},
+                            {"keyword": "b", "position": 3, "url": "/b"}],
+               "backlinks": {"referring_domains": 50},
+               "mentions": {"ai_mentions": 4}}
+        new = {"scores": {"technical": 76, "content": 60},
+               "rankings": [{"keyword": "a", "position": 4, "url": "/a"},
+                            {"keyword": "c", "position": 9, "url": "/c"}],
+               "backlinks": {"referring_domains": 58},
+               "mentions": {"ai_mentions": 9}}
+        specs = drift_store.build_chart_specs(old, new)
+        types = [s["type"] for s in specs]
+        assert types == ["compare", "compare", "stats"]
+        scores = specs[0]
+        assert scores["max"] == 100
+        assert ["Technical", 70, 76] in scores["data"]
+        metrics = specs[1]
+        assert ["Referring Domains", 50, 58] in metrics["data"]
+        stats = specs[2]
+        flat = {row[0]: row[1] for row in stats["data"]}
+        assert flat["Keywords gained"] == "1"
+        assert flat["Keywords lost"] == "1"
+        assert flat["Moved up"] == "1"
+        assert flat["Moved down"] == "0"
+
+    def test_build_chart_specs_empty_when_nothing_comparable(self):
+        assert drift_store.build_chart_specs({"notes": "x"}, {"notes": "y"}) == []
+
 
 # ---------------------------------------------------------------------------
 # log_analyzer
@@ -315,6 +344,50 @@ class TestReportBuild:
         assert "My Report" in html
         assert "Lee Beirne" in html
         assert "leebeirne.com" in html
+
+    def test_compare_chart(self):
+        html = report_build.render_chart(
+            '{"type": "compare", "title": "vs last", "max": 100,'
+            ' "data": [["Technical", 70, 76], ["Content", 80, 72]]}')
+        assert "cmp-before" in html and "cmp-after" in html
+        assert "+6" in html and "-8" in html
+        assert "previous" in html and "current" in html
+
+    def test_onepager_extract(self):
+        md = (
+            "# Audit\n\n"
+            "## Executive summary\n\nSolid base, weak links.\n\n"
+            "## Scorecard\n\n| P | S |\n|---|---|\n| T | 74 |\n\n"
+            "```chart\n{\"type\": \"donut\", \"title\": \"Score\", "
+            "\"value\": 64, \"max\": 100}\n```\n\n"
+            "## Findings by severity\n\n| Severity | F |\n|---|---|\n| Critical | x |\n\n"
+            "## Recommendations and actions\n\n"
+            "| # | Action | Priority |\n|---|---|---|\n"
+            "| 1 | a | Critical |\n| 2 | b | High |\n| 3 | c | High |\n"
+            "| 4 | d | Medium |\n| 5 | e | Medium |\n| 6 | f | Low |\n\n"
+            "## Appendix\n\nraw data\n"
+        )
+        one = report_build.extract_onepager(md)
+        assert "Executive summary" in one
+        assert "Solid base, weak links." in one
+        assert "```chart" in one
+        assert "Recommendations" in one
+        assert "| 5 | e |" in one and "| 6 | f |" not in one  # capped at 5
+        assert "Appendix" not in one and "Findings by severity" not in one
+
+    def test_onepager_build(self, tmp_path):
+        md = tmp_path / "r.md"
+        md.write_text(
+            "# Audit\n\n## Executive summary\n\nText.\n\n"
+            "## Recommendations\n\n| # | A |\n|---|---|\n| 1 | x |\n\n"
+            "## Appendix\n\nstuff\n", encoding="utf-8")
+        out = report_build.build(md, tmp_path / "one.html", brand="Lee Beirne",
+                                 title=None, footer=report_build.DEFAULT_FOOTER,
+                                 onepager=True)
+        html = out.read_text(encoding="utf-8")
+        assert 'class="onepager"' in html
+        assert "Executive summary" in html
+        assert "Appendix" not in html
 
 
 # ---------------------------------------------------------------------------

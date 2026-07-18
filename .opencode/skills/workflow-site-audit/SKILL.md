@@ -79,14 +79,18 @@ one-line "why it matters".
    - `donut` for the overall score, `bar` for the five pillar scores
    - `bar` for top keyword movers and CWV values vs thresholds
    - `line` for trends when drift history exists
+   - **`compare` before/after charts when a previous snapshot exists** —
+     get ready-made blocks from
+     `python scripts/drift_store.py chart --domain <domain>`
 4. Save a drift snapshot so the next audit can show what changed:
 
 ```
 echo '{"scores": {"technical": X, "content": X, "authority": X, "cwv": X, "ai_search": X}, "rankings": [...], "backlinks": {"referring_domains": N}}' | python scripts/drift_store.py save --domain <domain>
 ```
 
-5. Offer to render the client HTML version:
-   `python scripts/report_build.py SEO-AUDIT-<domain>-<date>.md`
+5. Render both client HTML versions:
+   `python scripts/report_build.py SEO-AUDIT-<domain>-<date>.md` and the
+   same command with `--onepager` for the executive one-pager.
 
 ## Rules
 

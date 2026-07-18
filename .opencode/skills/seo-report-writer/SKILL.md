@@ -79,11 +79,21 @@ One JSON object per block:
     {"type": "stats", "data": [["Referring domains", "312", "+18"],
      ["Top-10 keywords", "24", "-2"], ["Indexed pages", "186", "+12"]]}
     ```
+    ```chart
+    {"type": "compare", "title": "Scores vs previous snapshot",
+     "data": [["Technical", 70, 76], ["Content", 60, 68]], "max": 100}
+    ```
+
+The `compare` type renders before/after bars (grey = previous, colour =
+current, delta on the right). Generate its data from the drift store —
+`python scripts/drift_store.py chart --domain <domain>` prints ready-made
+chart blocks whenever a previous snapshot exists.
 
 Rules: `stats` cards go right after the executive summary (3-5 headline
 numbers with deltas vs last period when drift data exists); every scorecard
-gets a donut + bar chart; trends get line charts. Never chart numbers you
-don't have data for.
+gets a donut + bar chart; trends get line charts; **when a previous drift
+snapshot exists, always include compare charts** — progress is the story
+the client cares most about. Never chart numbers you don't have data for.
 
 ## Output
 
@@ -100,12 +110,15 @@ Write the full report to `REPORT-<subject>-<date>.md` with this structure:
 End every report file with this footer line:
 `Report built by Lee Beirne - https://leebeirne.com`
 
-Then render the client-ready HTML version:
+Then render the client-ready HTML version — both the full report and the
+executive one-pager (summary + charts + top 5 actions, for time-poor
+stakeholders):
 
 ```
 python scripts/report_build.py REPORT-<subject>-<date>.md --brand "Lee Beirne"
+python scripts/report_build.py REPORT-<subject>-<date>.md --onepager
 ```
 
 In chat, return only: the executive summary, the scorecard, the top 5
-actions, and the report file paths (.md + .html). Single best next step
-stated explicitly at the end.
+actions, and the report file paths (.md + .html + -onepager.html). Single
+best next step stated explicitly at the end.

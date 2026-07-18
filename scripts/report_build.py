@@ -117,6 +117,39 @@ def svg_bar(spec: dict) -> str:
             + "".join(rows) + "</figure>")
 
 
+def svg_compare(spec: dict) -> str:
+    """Before/after grouped bars: data rows are [label, previous, current]."""
+    data = spec.get("data") or []
+    title = html.escape(str(spec.get("title", "")))
+    flat = [float(v) for row in data for v in row[1:3]] or [1]
+    max_value = float(spec.get("max") or max(flat)) or 1
+    rows = []
+    for i, entry in enumerate(data):
+        label = html.escape(str(entry[0]))
+        before, after = float(entry[1]), float(entry[2])
+        delta = after - before
+        before_w = max(1.5, 100 * before / max_value)
+        after_w = max(1.5, 100 * after / max_value)
+        after_colour = (score_colour(after, max_value) if spec.get("max")
+                        else CHART_COLOURS[i % len(CHART_COLOURS)])
+        delta_txt = f"+{delta:g}" if delta > 0 else f"{delta:g}"
+        delta_colour = TEAL if delta > 0 else (PINK if delta < 0 else MUTED)
+        rows.append(f'''<div class="cmp-row">
+  <span class="bar-label">{label}</span>
+  <span class="cmp-track">
+    <span class="cmp-before" style="width:{before_w:.1f}%"></span>
+    <span class="cmp-after" style="width:{after_w:.1f}%;background:{after_colour}"></span>
+  </span>
+  <span class="bar-value">{before:g} → {after:g}</span>
+  <span class="cmp-delta" style="color:{delta_colour}">{delta_txt}</span>
+</div>''')
+    legend = (f'<span class="cmp-legend">'
+              f'<span class="sw" style="background:#94a3b8"></span>previous'
+              f'<span class="sw" style="background:{TEAL}"></span>current</span>')
+    return (f'<figure class="chart"><figcaption>{title} {legend}</figcaption>'
+            + "".join(rows) + "</figure>")
+
+
 def svg_line(spec: dict) -> str:
     data = spec.get("data") or []
     title = html.escape(str(spec.get("title", "")))
@@ -182,6 +215,8 @@ def render_chart(block: str) -> str:
         return svg_donut(spec)
     if chart_type == "bar":
         return svg_bar(spec)
+    if chart_type == "compare":
+        return svg_compare(spec)
     if chart_type == "line":
         return svg_line(spec)
     if chart_type == "stats":
@@ -403,7 +438,21 @@ SHELL = """<!DOCTYPE html>
   .bar-track {{ flex: 1; background: #e2e8f0; border-radius: 999px;
                height: 14px; overflow: hidden; }}
   .bar-fill {{ display: block; height: 100%; border-radius: 999px; }}
-  .bar-value {{ flex: 0 0 3.2rem; text-align: right; font-weight: 600; }}
+  .bar-value {{ flex: 0 0 5.5rem; text-align: right; font-weight: 600; }}
+  .cmp-row {{ display: flex; align-items: center; gap: .7rem;
+             margin: .35rem 0; font-size: .88rem; }}
+  .cmp-track {{ flex: 1; position: relative; background: #e2e8f0;
+               border-radius: 999px; height: 14px; }}
+  .cmp-before {{ position: absolute; inset: 0 auto 0 0;
+                background: #94a3b8; border-radius: 999px; opacity: .55; }}
+  .cmp-after {{ position: absolute; inset: 0 auto 0 0;
+               border-radius: 999px; height: 8px; margin-top: 3px; }}
+  .cmp-delta {{ flex: 0 0 3rem; text-align: right; font-weight: 700; }}
+  .cmp-legend {{ font-weight: 400; font-size: .78rem; color: var(--muted);
+                margin-left: .5rem; }}
+  .cmp-legend .sw {{ display: inline-block; width: 10px; height: 10px;
+                    border-radius: 2px; margin: 0 .25rem 0 .6rem;
+                    vertical-align: -1px; }}
   .stat-strip {{ display: flex; flex-wrap: wrap; gap: .8rem; margin: 1.4rem 0; }}
   .stat-card {{ flex: 1 1 9rem; border: 1px solid #e2e8f0;
                border-top: 4px solid var(--teal); border-radius: 8px;
@@ -425,9 +474,15 @@ SHELL = """<!DOCTYPE html>
     h2 {{ page-break-after: avoid; }}
     table, pre, .chart, .stat-strip {{ page-break-inside: avoid; }}
   }}
+  /* one-pager: tighter rhythm so the summary genuinely fits a page */
+  body.onepager {{ max-width: 44rem; }}
+  body.onepager h2 {{ margin-top: 1.2rem; font-size: 1.15rem; }}
+  body.onepager .chart {{ margin: .8rem 0; }}
+  body.onepager .report-header {{ margin-bottom: 1rem; }}
+  body.onepager table {{ font-size: .82rem; }}
 </style>
 </head>
-<body>
+<body{body_class}>
 <div class="palette-strip"></div>
 <header class="report-header">
   <div class="brand">{brand}</div>
@@ -448,16 +503,64 @@ def _linkify(text: str) -> str:
     return re.sub(r"(https?://[^\s<]+)", r'<a href="\1">\1</a>', text)
 
 
+def extract_onepager(md: str) -> str:
+    """Condense a full report into an executive one-pager.
+
+    Keeps: the executive summary section, every chart block (deduplicated),
+    and the first 5 rows of the recommendations/actions table. Drops
+    everything else (findings detail, roadmap, appendix).
+    """
+    chart_blocks = re.findall(r"(?ms)^```chart\s*\n(.*?)^```\s*$", md)
+
+    parts = re.split(r"(?m)^(##\s+.*)$", md)
+    sections: list[tuple[str, str]] = []
+    for j in range(1, len(parts), 2):
+        sections.append((parts[j].strip(),
+                         parts[j + 1] if j + 1 < len(parts) else ""))
+
+    out: list[str] = []
+
+    # 1. executive summary (charts stripped here; re-added once below)
+    exec_pair = next(
+        ((h, b) for h, b in sections if re.search(r"executive summary", h, re.I)),
+        sections[0] if sections else None)
+    if exec_pair:
+        body_clean = re.sub(r"(?ms)^```chart\s*\n.*?^```\s*$", "", exec_pair[1])
+        out.append(exec_pair[0] + "\n\n" + body_clean.strip())
+
+    # 2. all charts, deduplicated
+    seen: set[str] = set()
+    for block in chart_blocks:
+        key = block.strip()
+        if key and key not in seen:
+            seen.add(key)
+            out.append("```chart\n" + key + "\n```")
+
+    # 3. recommendations/actions table, top 5 data rows
+    for heading, body in sections:
+        if re.search(r"recommend|action", heading, re.I):
+            table_lines = [l for l in body.strip().splitlines()
+                           if l.strip().startswith("|")]
+            if table_lines:
+                out.append(heading + "\n\n"
+                           + "\n".join(table_lines[:2 + 5]))
+            break
+
+    return "\n\n".join(out).strip() + "\n"
+
+
 def build(md_path: Path, out_path: Path, brand: str, title: str | None,
-          footer: str) -> Path:
+          footer: str, onepager: bool = False) -> Path:
     markdown = md_path.read_text(encoding="utf-8")
     # use first H1 as title when --title is not given
     if not title:
         match = re.search(r"^#\s+(.+)$", markdown, re.MULTILINE)
         title = match.group(1).strip() if match else md_path.stem
         markdown = re.sub(r"^#\s+.+\n?", "", markdown, count=1)
+    if onepager:
+        markdown = extract_onepager(markdown)
     body, toc_entries = md_to_html(markdown)
-    if len(toc_entries) >= 3:
+    if not onepager and len(toc_entries) >= 3:
         items = "".join(
             f'<li class="l{level}"><a href="#{slug}">{html.escape(text)}</a></li>'
             for level, slug, text in toc_entries)
@@ -471,7 +574,8 @@ def build(md_path: Path, out_path: Path, brand: str, title: str | None,
         teal=TEAL, purple=PURPLE, pink=PINK, yellow=YELLOW,
         ink=INK, muted=MUTED,
         toc=toc_html, body=body,
-        footer=_linkify(html.escape(footer)))
+        footer=_linkify(html.escape(footer)),
+        body_class=' class="onepager"' if onepager else "")
     out_path.write_text(page, encoding="utf-8")
     return out_path
 
@@ -484,14 +588,22 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--brand", default="Lee Beirne")
     parser.add_argument("--title", help="report title (default: first H1)")
     parser.add_argument("--footer", default=DEFAULT_FOOTER)
+    parser.add_argument("--onepager", action="store_true",
+                        help="executive one-pager: summary + charts + top 5 actions")
     args = parser.parse_args(argv)
 
     md_path = Path(args.input)
     if not md_path.is_file():
         print(json.dumps({"error": f"File not found: {md_path}"}))
         return 1
-    out_path = Path(args.output) if args.output else md_path.with_suffix(".html")
-    result = build(md_path, out_path, args.brand, args.title, args.footer)
+    if args.output:
+        out_path = Path(args.output)
+    elif args.onepager:
+        out_path = md_path.with_name(md_path.stem + "-onepager.html")
+    else:
+        out_path = md_path.with_suffix(".html")
+    result = build(md_path, out_path, args.brand, args.title, args.footer,
+                   onepager=args.onepager)
     print(json.dumps({"written": str(result.resolve())}))
     return 0
 

@@ -3,6 +3,27 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.1] - 2026-07-18
+
+Before/after reporting and the executive one-pager.
+
+### Added
+- **`compare` chart type** — before/after bars with deltas (grey = previous,
+  colour = current); ideal for drift-powered progress reporting
+- **`drift_store.py chart`** — prints ready-made ```` ```chart ```` blocks
+  comparing two snapshots (scores, backlinks/mentions, ranking movement)
+- **`--onepager` mode** on `report_build.py` — renders an executive
+  one-pager (summary + charts + top 5 actions) to `<name>-onepager.html`
+- 5 new tests (compare charts, onepager extraction, drift chart specs;
+  39 total)
+
+### Changed
+- `drift_store.py compare`/`chart` now default to comparing the two most
+  recent snapshots (was: oldest vs newest)
+- `seo-report-writer` and `workflow-site-audit` produce the one-pager
+  alongside the full HTML report and include compare charts whenever a
+  previous drift snapshot exists
+
 ## [0.3.0] - 2026-07-18
 
 Report experience overhaul.

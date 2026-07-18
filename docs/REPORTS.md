@@ -19,6 +19,32 @@ Options:
 | `--brand` | `Lee Beirne` | Name in the header |
 | `--title` | first H1 of the doc | Report title |
 | `--footer` | `Report built by Lee Beirne - https://leebeirne.com` | Footer line (URLs auto-link) |
+| `--onepager` | off | Executive one-pager: summary + charts + top 5 actions, no TOC, tighter layout. Writes `<name>-onepager.html` |
+
+## The executive one-pager
+
+```bash
+python scripts/report_build.py REPORT-acme-q3.md --onepager
+```
+
+Extracts from the full report: the executive summary, every chart
+(deduplicated), and the first 5 rows of the recommendations/actions table.
+Findings detail, roadmap, and appendix are dropped. Ideal for
+time-poor stakeholders — send the one-pager, attach the full report.
+
+## Before/after charts (drift-powered)
+
+When drift snapshots exist for a domain, generate ready-made chart blocks:
+
+```bash
+python scripts/drift_store.py chart --domain example.com
+```
+
+Prints ```` ```chart ```` blocks comparing the two most recent snapshots
+(`--from` / `--to` pick others): score comparisons, backlink/mention
+comparisons, and ranking-movement stat cards. Paste them into any report;
+`report_build.py` renders them as before/after bars (grey = previous,
+colour = current, delta on the right).
 
 ## What you get
 
@@ -54,6 +80,13 @@ don't have data for.
     ```chart
     {"type": "line", "title": "Organic clicks / month",
      "data": [["Mar", 120], ["Apr", 180], ["May", 260]]}
+    ```
+
+**Compare** (before/after — drift snapshots; grey = previous, colour = current):
+
+    ```chart
+    {"type": "compare", "title": "Scores vs previous snapshot",
+     "data": [["Technical", 70, 76], ["Content", 60, 68]], "max": 100}
     ```
 
 **Stats** (headline KPI cards, right after the executive summary):

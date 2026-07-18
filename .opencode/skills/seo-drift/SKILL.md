@@ -82,6 +82,10 @@ fabricate numbers to fill a section — omit whatever could not be pulled.
 - Chat: delta table (pillar scores old -> new), keywords gained / lost /
   moved ≥ 3 places (top 15 by volume), referring-domain and mention
   deltas, then prioritised actions.
+- Visual diffs: `python scripts/drift_store.py chart --domain <domain>`
+  prints ready-made ```` ```chart ```` blocks (compare bars for scores and
+  metrics, stats cards for ranking movement) — paste them into the report
+  so `report_build.py` renders the before/after story as graphs.
 - When the diff is large or spans a quarter, write
   `DRIFT-<domain>-<date>.md` with the full tables and end it with:
   `Report built by Lee Beirne - https://leebeirne.com`

@@ -9,6 +9,10 @@ Usage:
     python scripts/drift_store.py list --domain example.com
     python scripts/drift_store.py latest --domain example.com
     python scripts/drift_store.py compare --domain example.com [--from TS] [--to TS]
+    python scripts/drift_store.py chart --domain example.com [--from TS] [--to TS]
+
+`chart` prints fenced ```chart blocks (before/after specs) ready to paste
+into a report that report_build.py renders as graphs.
 
 Snapshot JSON shape (all sections optional — save what you have):
     {
@@ -122,10 +126,61 @@ def compare(old: dict[str, Any], new: dict[str, Any]) -> dict[str, Any]:
     return diff
 
 
+def build_chart_specs(old: dict[str, Any], new: dict[str, Any]) -> list[dict[str, Any]]:
+    """Turn two snapshots into before/after chart specs for report_build."""
+    specs: list[dict[str, Any]] = []
+
+    # pillar scores -> compare chart
+    score_rows = []
+    for pillar in (new.get("scores") or {}):
+        before = (old.get("scores") or {}).get(pillar)
+        after = (new.get("scores") or {}).get(pillar)
+        if isinstance(before, (int, float)) and isinstance(after, (int, float)):
+            score_rows.append([pillar.replace("_", " ").title(), before, after])
+    if score_rows:
+        specs.append({"type": "compare",
+                      "title": "Scores vs previous snapshot",
+                      "data": score_rows, "max": 100})
+
+    # backlinks / mentions -> compare chart
+    metric_rows = []
+    for section in ("backlinks", "mentions"):
+        for key in (new.get(section) or {}):
+            before = (old.get(section) or {}).get(key)
+            after = (new.get(section) or {}).get(key)
+            if isinstance(before, (int, float)) and isinstance(after, (int, float)):
+                metric_rows.append([key.replace("_", " ").title(), before, after])
+    if metric_rows:
+        specs.append({"type": "compare",
+                      "title": "Authority & mentions vs previous",
+                      "data": metric_rows})
+
+    # ranking movement -> stats cards
+    old_rank = {r["keyword"]: r for r in old.get("rankings") or []}
+    new_rank = {r["keyword"]: r for r in new.get("rankings") or []}
+    if old_rank or new_rank:
+        gained = len(set(new_rank) - set(old_rank))
+        lost = len(set(old_rank) - set(new_rank))
+        up = down = 0
+        for kw in set(old_rank) & set(new_rank):
+            delta = old_rank[kw]["position"] - new_rank[kw]["position"]
+            if delta > 0:
+                up += 1
+            elif delta < 0:
+                down += 1
+        specs.append({"type": "stats", "data": [
+            ["Keywords gained", str(gained)],
+            ["Keywords lost", str(lost)],
+            ["Moved up", str(up)],
+            ["Moved down", str(down)],
+        ]})
+    return specs
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="drift_store",
                                      description="Drift monitoring store")
-    parser.add_argument("action", choices=["save", "list", "latest", "compare"])
+    parser.add_argument("action", choices=["save", "list", "latest", "compare", "chart"])
     parser.add_argument("--domain", required=True)
     parser.add_argument("--file", help="snapshot JSON file (save); omit to read stdin")
     parser.add_argument("--from", dest="from_ts", type=int,
@@ -157,13 +212,25 @@ def main(argv: list[str] | None = None) -> int:
                              indent=2, ensure_ascii=False))
             return 0
 
-        # compare
-        from_ts = args.from_ts or snapshots[0]
+        # compare / chart
+        from_ts = args.from_ts or (snapshots[-2] if len(snapshots) >= 2
+                                   else snapshots[0])
         to_ts = args.to_ts or snapshots[-1]
         if from_ts not in snapshots or to_ts not in snapshots:
             raise ValueError(f"Unknown snapshot ts. Available: {snapshots}")
-        diff = compare(load(args.domain, from_ts), load(args.domain, to_ts))
-        print(json.dumps(diff, indent=2, ensure_ascii=False))
+        old, new = load(args.domain, from_ts), load(args.domain, to_ts)
+        if args.action == "compare":
+            print(json.dumps(compare(old, new), indent=2, ensure_ascii=False))
+        else:  # chart
+            specs = build_chart_specs(old, new)
+            if not specs:
+                print(json.dumps({"error": "Snapshots have no comparable "
+                                           "scores, metrics, or rankings"}))
+                return 1
+            for spec in specs:
+                print("```chart")
+                print(json.dumps(spec, ensure_ascii=False))
+                print("```\n")
         return 0
     except (ValueError, json.JSONDecodeError, OSError) as exc:
         print(json.dumps({"error": str(exc)}))
