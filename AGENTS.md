@@ -25,6 +25,9 @@ This repo is an OpenCode skill pack. If you are an agent working inside it:
 - Skill bodies: Inputs → Data pulls → Process → Output. Findings with
   evidence, prioritized recommendations with a one-line "why", single best
   next step. Long output goes to a named `.md` file.
+- New skills follow the **recipe contract** (docs/RECIPES.md): declare
+  engine inputs + judgment added, never re-check what the deterministic
+  engine (rules/, seo_lint, seo_fix, citation_score) already covers.
 - Generated reports go to `%SEO_REPORTS_DIR%\<name>\` (Windows) /
   `$SEO_REPORTS_DIR/<name>/` (Unix) when the env var is set — never into
   the suite repository itself.

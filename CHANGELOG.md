@@ -3,6 +3,35 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.7.0] - 2026-07-18
+
+Recipes, entity registry, and consolidated comparison.
+
+### Added
+- **docs/RECIPES.md** — the recipe contract for new skills: declare engine
+  inputs, judgment added, and what the skill never re-checks. New
+  deterministic checks go in `rules/`, not in skill prose. Includes a
+  decision tree and a worked example
+- **Entity registry** in project memory: `entities:` sections in
+  `seo-project.yml` / `clients/<name>.yml` (people, organisations,
+  products with aliases, roles, descriptions, sameAs links).
+  `python scripts/project_memory.py entities --client <name>` prints the
+  registry; `--check` validates it
+- **`schema_gen.py --from-memory <client>`** — generate Organization /
+  Person JSON-LD straight from the entity registry (explicit `--field`
+  args override memory values)
+- **`compare` skill + `/compare` command** — consolidated site-vs-
+  competitor comparison: authority, keyword footprint, keyword gap, SERP
+  features, plus lint and citation scores for both homepages in one report
+- 6 new tests (entity normalisation, entities CLI, from-memory schema
+  generation; 86 total)
+
+### Changed
+- README reframe: leads with "An AI-native SEO platform for OpenCode"
+  instead of the skill count (counts moved to the detail line)
+- `clients/` is now gitignored — client profiles are user data, never
+  committed
+
 ## [0.6.0] - 2026-07-18
 
 Deterministic citation readiness scoring.

@@ -11,6 +11,7 @@ Usage:
     python scripts/project_memory.py [--path seo-project.yml] [--init]
     python scripts/project_memory.py --client acme [--init] [--check]
     python scripts/project_memory.py --list-clients
+    python scripts/project_memory.py entities [--client acme]   # entity registry
 """
 
 from __future__ import annotations
@@ -55,6 +56,21 @@ constraints:
   cms: ""                   # wordpress | shopify | webflow | custom | ...
   deploy_notes: ""
 
+# Entity registry — the people, organisations and products this site is
+# about. Skills use these for schema (schema_gen --from-memory), entity
+# consistency checks, and knowledge-graph work.
+entities: []
+#  - name: "Acme Ltd"
+#    type: Organization        # Organization | Person | Product | Brand
+#    aliases: ["Acme", "Acme Limited"]
+#    role: ""                  # Person entities: job title / role
+#    description: "One line on what this entity is"
+#    sameAs: ["https://www.linkedin.com/company/acme", "https://x.com/acme"]
+#  - name: "Jane Doe"
+#    type: Person
+#    role: "Founder & CEO"
+#    sameAs: ["https://www.linkedin.com/in/janedoe"]
+
 notes: ""
 """
 
@@ -98,9 +114,29 @@ def load(path: Path) -> dict[str, Any]:
     return {"path": str(path), "project": data or {}}
 
 
+def get_entities(project: dict[str, Any]) -> list[dict[str, Any]]:
+    """Normalise the entity registry from a loaded project profile."""
+    entities = (project or {}).get("entities") or []
+    out = []
+    for entity in entities:
+        if not isinstance(entity, dict) or not entity.get("name"):
+            continue
+        out.append({
+            "name": entity["name"],
+            "type": entity.get("type", "Organization"),
+            "aliases": entity.get("aliases") or [],
+            "role": entity.get("role", ""),
+            "description": entity.get("description", ""),
+            "sameAs": entity.get("sameAs") or [],
+        })
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="project_memory",
                                      description="Project memory loader")
+    parser.add_argument("action", nargs="?", choices=["entities"],
+                        help="entities: print the entity registry as JSON")
     parser.add_argument("--path", help="explicit path to seo-project.yml")
     parser.add_argument("--client", help="load/create clients/<name>.yml")
     parser.add_argument("--list-clients", action="store_true",
@@ -142,6 +178,12 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     result = load(path)
+    if args.action == "entities":
+        project = result.get("project") or {}
+        entities = get_entities(project)
+        print(json.dumps({"path": result.get("path"), "entities": entities,
+                          "count": len(entities)}, indent=2, ensure_ascii=False))
+        return 0 if "error" not in result else 1
     if args.check:
         project = result.get("project") or {}
         problems = []
@@ -149,6 +191,11 @@ def main(argv: list[str] | None = None) -> int:
             problems.append("site.url is not set")
         if not project.get("competitors"):
             problems.append("competitors list is empty (recommended)")
+        for i, entity in enumerate(project.get("entities") or []):
+            if not isinstance(entity, dict) or not entity.get("name"):
+                problems.append(f"entities[{i}] has no name")
+            elif not entity.get("type"):
+                problems.append(f"entities[{i}] ('{entity['name']}') has no type")
         result["check"] = "ok" if not problems else problems
     print(json.dumps(result, indent=2, ensure_ascii=False))
     return 0 if "error" not in result else 1

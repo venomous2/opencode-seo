@@ -5,7 +5,9 @@
 [![Tests](https://img.shields.io/badge/tests-71%20passing-brightgreen)](tests)
 [![Rules](https://img.shields.io/badge/rules-26%20self--testing-00E0BA)](rules)
 
-A native [OpenCode](https://opencode.ai) SEO skill pack: **82 skills, 4 specialist agents, 8 slash commands, and a deterministic rule engine** covering technical SEO, content strategy, AI search optimization (GEO/AEO), competitive research, local SEO, and e-commerce — with **DataForSEO as the mandatory live-data backbone** and optional Google API enrichment (Search Console, GA4, PageSpeed, CrUX).
+**An AI-native SEO platform for OpenCode.** Ask "why has my traffic dropped?", "what should we publish next?", "how do we improve AI visibility?" — and get evidence-backed answers, fixes, and client-ready reports, powered by live [DataForSEO](https://dataforseo.com) data and a deterministic rule engine that works identically across all 400+ OpenCode models.
+
+Under the bonnet: 82 skills, 4 specialist agents, 8 slash commands, 26 self-testing rules, a fix engine, and a citation scorer — covering technical SEO, content strategy, AI search (GEO/AEO), competitive research, local SEO, and e-commerce. Google APIs (Search Console, GA4, PageSpeed, CrUX) are optional enrichment tiers.
 
 **Built by Lee Beirne.** Inspired by [`AgriciDaniel/claude-seo`](https://github.com/AgriciDaniel/claude-seo) — an original re-implementation for OpenCode, modified and extended by Lee Beirne (DataForSEO-mandatory data layer, three-layer architecture, project memory). All skill content is original; credit for the underlying concept goes to Agrici Daniel.
 

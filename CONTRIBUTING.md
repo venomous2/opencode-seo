@@ -14,8 +14,10 @@ Contributions are welcome. The suite is deliberately simple: markdown skills
      a user would say (e.g. "Use when the user says ...").
    ---
    ```
-3. Body structure: `# Title` → `## Inputs` → `## Data pulls` (if it needs
-   live data) → `## Process` → `## Output`.
+3. Follow the **recipe contract** in [docs/RECIPES.md](docs/RECIPES.md):
+   declare the skill's engine inputs, the judgment it adds, and what it
+   never re-checks. New deterministic checks belong in `rules/` as YAML
+   rules with embedded tests — not in skill prose.
 4. Rules every skill must follow:
    - Live SEO metrics come from `python scripts/dfs_client.py` — never
      instruct the model to estimate volumes, rankings, or link counts.

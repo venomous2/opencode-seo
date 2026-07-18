@@ -700,3 +700,71 @@ class TestProjectMemory:
         (clients / "acme.yml").write_text("site:\n  url: https://acme.com\n")
         monkeypatch.chdir(tmp_path)
         assert project_memory.list_clients() == ["acme"]
+
+    ENTITY_YAML = (
+        "site:\n  url: https://acme.example\n"
+        "entities:\n"
+        "  - name: Acme Corp Ltd\n"
+        "    type: Organization\n"
+        "    description: Grinder maker\n"
+        "    sameAs: [https://x.com/acme, https://linkedin.com/company/acme]\n"
+        "  - name: Jane Doe\n"
+        "    type: Person\n"
+        "    role: Founder\n"
+        "  - name: ''\n"          # malformed entry, should be skipped
+    )
+
+    def test_get_entities_normalises(self, tmp_path, monkeypatch):
+        import yaml
+        project = yaml.safe_load(self.ENTITY_YAML)
+        entities = project_memory.get_entities(project)
+        assert len(entities) == 2            # malformed entry skipped
+        org = entities[0]
+        assert org["type"] == "Organization"
+        assert org["aliases"] == []
+        person = entities[1]
+        assert person["role"] == "Founder"
+
+    def test_entities_cli(self, tmp_path, monkeypatch, capsys):
+        clients = tmp_path / "clients"
+        clients.mkdir()
+        (clients / "acme.yml").write_text(self.ENTITY_YAML)
+        monkeypatch.chdir(tmp_path)
+        rc = project_memory.main(["entities", "--client", "acme"])
+        assert rc == 0
+        out = json.loads(capsys.readouterr().out)
+        assert out["count"] == 2
+
+
+class TestSchemaFromMemory:
+    def test_organization_from_memory(self, tmp_path, monkeypatch):
+        clients = tmp_path / "clients"
+        clients.mkdir()
+        (clients / "acme.yml").write_text(TestProjectMemory.ENTITY_YAML)
+        monkeypatch.chdir(tmp_path)
+        fields = schema_gen.fields_from_memory("acme", "organization")
+        assert fields["name"] == "Acme Corp Ltd"
+        assert fields["url"] == "https://acme.example"
+        assert fields["sameAs"] == ["https://x.com/acme",
+                                    "https://linkedin.com/company/acme"]
+
+    def test_person_from_memory(self, tmp_path, monkeypatch):
+        clients = tmp_path / "clients"
+        clients.mkdir()
+        (clients / "acme.yml").write_text(TestProjectMemory.ENTITY_YAML)
+        monkeypatch.chdir(tmp_path)
+        fields = schema_gen.fields_from_memory("acme", "person")
+        assert fields["jobTitle"] == "Founder"
+
+    def test_missing_entity_type_raises(self, tmp_path, monkeypatch):
+        clients = tmp_path / "clients"
+        clients.mkdir()
+        (clients / "acme.yml").write_text("site:\n  url: https://x.example\n")
+        monkeypatch.chdir(tmp_path)
+        with pytest.raises(ValueError, match="No Organization entity"):
+            schema_gen.fields_from_memory("acme", "organization")
+
+    def test_unknown_client_raises(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        with pytest.raises(ValueError, match="No profile"):
+            schema_gen.fields_from_memory("ghost", "organization")

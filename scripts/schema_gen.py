@@ -8,6 +8,8 @@ comma-separated values (sameAs=https://a,https://b).
 Usage:
     python scripts/schema_gen.py article --field headline="My Post" \
         --field author.name="Jane Doe" --field datePublished=2026-07-17
+    python scripts/schema_gen.py organization --from-memory acme
+        # pull the entity registry from clients/acme.yml
 
 Types:
     organization website webpage article blogposting newsarticle
@@ -20,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 from typing import Any
 
 TYPE_MAP = {
@@ -104,18 +107,78 @@ def build(schema_type: str, fields: list[str]) -> dict[str, Any]:
     return node
 
 
+def fields_from_memory(client: str, schema_type: str) -> dict[str, Any]:
+    """Map a client profile's entity registry onto schema fields.
+
+    Finds the first entity whose type matches the schema type and maps its
+    registry data onto schema properties (site.url fills url where useful).
+    """
+    try:
+        import project_memory
+    except ImportError:
+        sys.path.insert(0, str(Path(__file__).parent))
+        import project_memory
+
+    path = project_memory.client_path(client)
+    if not path.is_file():
+        raise ValueError(f"No profile for client '{client}' "
+                         f"(expected {path})")
+    result = project_memory.load(path)
+    if "error" in result:
+        raise ValueError(result["error"])
+    project = result.get("project") or {}
+    entities = project_memory.get_entities(project)
+
+    wanted = {"organization": "Organization", "person": "Person",
+              "product": "Product"}
+    type_name = wanted.get(schema_type)
+    entity = next((e for e in entities if e["type"] == type_name), None)
+    if not entity:
+        raise ValueError(f"No {type_name} entity in {path} — "
+                         f"add one under 'entities:' in the client profile")
+
+    fields: dict[str, Any] = {"name": entity["name"]}
+    if entity.get("description"):
+        fields["description"] = entity["description"]
+    if entity.get("sameAs"):
+        fields["sameAs"] = entity["sameAs"]
+    if schema_type == "organization":
+        site_url = ((project.get("site") or {}).get("url") or "").rstrip("/")
+        if site_url:
+            fields["url"] = site_url
+    if schema_type == "person" and entity.get("role"):
+        fields["jobTitle"] = entity["role"]
+    return fields
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="schema_gen",
                                      description="JSON-LD schema generator")
     parser.add_argument("type", choices=sorted(TYPE_MAP))
     parser.add_argument("--field", action="append", default=[],
                         help="key=value; dot notation nests, commas make arrays")
+    parser.add_argument("--from-memory", dest="from_memory",
+                        help="client profile to pull entity data from (clients/<name>.yml)")
     parser.add_argument("--script-tag", action="store_true",
                         help="wrap output in a <script type=application/ld+json> tag")
     args = parser.parse_args(argv)
 
+    fields = list(args.field)
+    if args.from_memory:
+        try:
+            memory_fields = fields_from_memory(args.from_memory, args.type)
+        except ValueError as exc:
+            print(json.dumps({"error": str(exc)}))
+            return 1
+        for key, value in memory_fields.items():
+            if isinstance(value, list):
+                value = ",".join(str(v) for v in value)
+            # explicit --field args win over memory values
+            if not any(f.split("=")[0] == key for f in fields):
+                fields.append(f"{key}={value}")
+
     try:
-        node = build(args.type, args.field)
+        node = build(args.type, fields)
     except ValueError as exc:
         print(json.dumps({"error": str(exc)}))
         return 1
