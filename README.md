@@ -5,7 +5,7 @@
 [![Tests](https://img.shields.io/badge/tests-71%20passing-brightgreen)](tests)
 [![Rules](https://img.shields.io/badge/rules-26%20self--testing-00E0BA)](rules)
 
-**An AI-native SEO platform for OpenCode.** Ask "why has my traffic dropped?", "what should we publish next?", "how do we improve AI visibility?" — and get evidence-backed answers, fixes, and client-ready reports, powered by live [DataForSEO](https://dataforseo.com) data and a deterministic rule engine that works identically across all 400+ OpenCode models.
+**An AI-native SEO platform for OpenCode.** Ask "why has my traffic dropped?", "what should we publish next?", "how do we improve AI visibility?" — and get evidence-backed answers, fixes, and client-ready reports, powered by live [DataForSEO](https://dataforseo.com) data and a deterministic rule engine that works identically across all OpenRouter.ai models.
 
 Under the bonnet: 82 skills, 4 specialist agents, 8 slash commands, 26 self-testing rules, a fix engine, and a citation scorer — covering technical SEO, content strategy, AI search (GEO/AEO), competitive research, local SEO, and e-commerce. Google APIs (Search Console, GA4, PageSpeed, CrUX) are optional enrichment tiers.
 
