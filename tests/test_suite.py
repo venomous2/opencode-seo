@@ -464,7 +464,44 @@ class TestReportBuild:
 
     def test_invalid_chart_falls_back(self):
         html = report_build.render_chart("not json")
-        assert "<pre" in html
+        assert "chart-unparsed" in html
+
+    def test_yaml_spec_accepted(self):
+        yaml_block = ('type: bar\n'
+                      'title: Pillars\n'
+                      'data:\n'
+                      '  - [Technical, 74]\n'
+                      '  - [Content, 81]\n')
+        spec = report_build.normalise_spec(yaml_block)
+        assert spec["type"] == "bar"
+        assert spec["data"] == [["Technical", 74], ["Content", 81]]
+
+    def test_single_key_unwrap_and_label_value_dicts(self):
+        # the exact shape weaker models emit: bare type word + YAML list
+        block = ('donut\n'
+                 '- label: "Overall"\n'
+                 '  value: 33\n'
+                 '- label: "Technical"\n'
+                 '  value: 40\n')
+        spec = report_build.normalise_spec(block)
+        assert spec["type"] == "donut"
+        assert spec["data"] == [["Overall", 33], ["Technical", 40]]
+
+    def test_multi_segment_donut(self):
+        html = report_build.render_chart(
+            '{"type": "donut", "title": "Pillars",'
+            ' "data": [["Technical", 40], ["Content", 25], ["Authority", 20]]}')
+        assert "legend-item" in html
+        assert html.count("stroke-dasharray") == 3
+
+    def test_bare_list_becomes_bar(self):
+        spec = report_build.normalise_spec('[["A", 1], ["B", 2]]')
+        assert spec["type"] == "bar"
+
+    def test_name_score_keys_normalised(self):
+        spec = report_build.normalise_spec(
+            '{"type": "bar", "data": [{"name": "X", "score": 5}]}')
+        assert spec["data"] == [["X", 5]]
 
     def test_build_writes_file(self, tmp_path):
         md = tmp_path / "r.md"

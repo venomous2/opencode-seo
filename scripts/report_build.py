@@ -72,9 +72,42 @@ def score_colour(value: float, max_value: float = 100) -> str:
 # ---------------------------------------------------------------------------
 
 def svg_donut(spec: dict) -> str:
+    title = html.escape(str(spec.get("title", "")))
+    data = spec.get("data")
+    if data:  # multi-segment donut with legend
+        values = [float(v) for _, v in data] or [1]
+        total = sum(values) or 1
+        r, cx, cy = 54, 70, 70
+        circ = 2 * 3.14159265 * r
+        offset = 0.0
+        segments = []
+        legend = []
+        for i, (label, value) in enumerate(data):
+            value_f = float(value)
+            length = circ * value_f / total
+            colour = CHART_COLOURS[i % len(CHART_COLOURS)]
+            segments.append(
+                f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" '
+                f'stroke="{colour}" stroke-width="16" '
+                f'stroke-dasharray="{length:.1f} {circ - length:.1f}" '
+                f'stroke-dashoffset="{-offset:.1f}" '
+                f'transform="rotate(-90 {cx} {cy})"/>')
+            legend.append(
+                f'<span class="legend-item"><span class="sw" '
+                f'style="background:{colour}"></span>{html.escape(str(label))} '
+                f'({value_f:g})</span>')
+            offset += length
+        return f'''<figure class="chart donut">
+<svg viewBox="0 0 140 140" width="150" height="150" role="img" aria-label="{title}">
+  <circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="#e2e8f0" stroke-width="16"/>
+  {''.join(segments)}
+</svg>
+<figcaption>{title}</figcaption>
+<div class="legend">{''.join(legend)}</div>
+</figure>'''
+
     value = float(spec.get("value", 0))
     max_value = float(spec.get("max", 100)) or 100
-    title = html.escape(str(spec.get("title", "")))
     pct = max(0.0, min(1.0, value / max_value))
     colour = score_colour(value, max_value)
     r, cx, cy = 54, 70, 70
@@ -205,11 +238,62 @@ def stat_cards(spec: dict) -> str:
     return '<div class="stat-strip">' + "".join(cards) + "</div>"
 
 
-def render_chart(block: str) -> str:
+def normalise_spec(raw: str) -> dict | None:
+    """Parse a chart block's spec, tolerating the shapes different models emit.
+
+    Canonical form is JSON, but weaker models often write YAML or a bare
+    list of label/value dicts — all are normalised to the same spec.
+    """
+    raw = raw.strip()
+    # tolerate a bare chart-type word on the first line ("donut\n- label: ...")
+    first_line, _, rest = raw.partition("\n")
+    if first_line.strip() in ("donut", "bar", "line", "stats", "compare") and rest:
+        raw = first_line.strip() + ":\n" + rest
+
+    spec: Any = None
     try:
-        spec = json.loads(block)
+        spec = json.loads(raw)
     except json.JSONDecodeError:
-        return f'<pre class="code"><code>{html.escape(block)}</code></pre>'
+        try:
+            import yaml  # type: ignore
+            spec = yaml.safe_load(raw)
+        except Exception:  # noqa: BLE001 - any parse failure -> fallback
+            return None
+    if not isinstance(spec, (dict, list)):
+        return None
+
+    # unwrap {"donut": [...]} single-key form
+    if isinstance(spec, dict) and "type" not in spec and len(spec) == 1:
+        key, value = next(iter(spec.items()))
+        if key in ("donut", "bar", "line", "stats", "compare"):
+            spec = {"type": key, "data": value}
+    if isinstance(spec, list):  # bare list of pairs/dicts -> bar chart
+        spec = {"type": "bar", "data": spec}
+    if "type" not in spec:
+        return None
+
+    # normalise data rows: {label/name, value/score} dicts -> [label, value]
+    data = spec.get("data")
+    if isinstance(data, list):
+        pairs = []
+        for item in data:
+            if isinstance(item, dict):
+                label = item.get("label", item.get("name", ""))
+                value = item.get("value", item.get("score", 0))
+                pairs.append([label, value])
+            elif isinstance(item, (list, tuple)) and len(item) >= 2:
+                pairs.append(list(item))
+        if pairs:
+            spec["data"] = pairs
+    return spec
+
+
+def render_chart(block: str) -> str:
+    spec = normalise_spec(block)
+    if not spec:
+        return ('<div class="chart-unparsed"><strong>Chart data '
+                '(unparsed)</strong><pre class="code"><code>'
+                + html.escape(block) + "</code></pre></div>")
     chart_type = spec.get("type")
     if chart_type == "donut":
         return svg_donut(spec)
@@ -221,7 +305,8 @@ def render_chart(block: str) -> str:
         return svg_line(spec)
     if chart_type == "stats":
         return stat_cards(spec)
-    return f'<pre class="code"><code>{html.escape(block)}</code></pre>'
+    return ('<div class="chart-unparsed"><strong>Chart data (unparsed)</strong>'
+            f'<pre class="code"><code>{html.escape(block)}</code></pre></div>')
 
 
 # ---------------------------------------------------------------------------
@@ -432,6 +517,13 @@ SHELL = """<!DOCTYPE html>
   .chart figcaption {{ font-weight: 600; color: var(--ink);
                       margin-bottom: .6rem; font-size: .95rem; }}
   .chart.donut {{ text-align: center; }}
+  .legend {{ margin-top: .5rem; font-size: .82rem; color: var(--ink); }}
+  .legend-item {{ display: inline-block; margin: 0 .9rem .2rem 0; }}
+  .legend-item .sw {{ display: inline-block; width: 10px; height: 10px;
+                     border-radius: 2px; margin-right: .3rem; }}
+  .chart-unparsed {{ border: 1px dashed var(--pink); border-radius: 8px;
+                    padding: .8rem; margin: 1.4rem 0; font-size: .85rem; }}
+  .chart-unparsed strong {{ color: var(--pink); }}
   .bar-row {{ display: flex; align-items: center; gap: .7rem;
              margin: .35rem 0; font-size: .88rem; }}
   .bar-label {{ flex: 0 0 11rem; color: var(--ink); }}

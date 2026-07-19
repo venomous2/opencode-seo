@@ -95,6 +95,12 @@ gets a donut + bar chart; trends get line charts; **when a previous drift
 snapshot exists, always include compare charts** — progress is the story
 the client cares most about. Never chart numbers you don't have data for.
 
+Write specs as JSON (canonical). The renderer also tolerates YAML and
+label/value lists — but if you are a smaller model, copy the JSON examples
+above EXACTLY, changing only the numbers, and always wrap them in
+```` ```chart ```` fences. A donut may take either a single `value`/`max`
+(gauge) or a `data` list (multi-segment with legend).
+
 ## Output
 
 Write the full report to `REPORT-<subject>-<date>.md` with this structure:

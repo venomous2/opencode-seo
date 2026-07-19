@@ -3,6 +3,18 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.7.1] - 2026-07-19
+
+### Added
+- **Model-tolerant chart parsing**: `report_build.py` now accepts YAML and
+  bare label/value lists in ```` ```chart ```` blocks (not just JSON), so
+  reports render graphs regardless of which of the 400+ models wrote the
+  markdown. Unparseable blocks degrade to a labelled fallback box instead
+  of raw text
+- **Multi-segment donuts** with legends (donut specs may carry a `data`
+  list instead of a single value)
+- 6 new tests (91 total)
+
 ## [0.7.0] - 2026-07-18
 
 Recipes, entity registry, and consolidated comparison.
