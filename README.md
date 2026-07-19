@@ -226,7 +226,7 @@ The instant lint and on-page checks read the served HTML — if critical content
 Everything is local-first: credentials in `~/.config/opencode/seo-suite/` (user-only permissions) or your project's `.env`, reports in your `SEO_REPORTS_DIR`, nothing sent anywhere except the official DataForSEO and Google API endpoints.
 
 **Which AI models does it work with?**
-All of them. The rule engine and linting are deterministic Python — zero model calls — so results are identical across OpenCode's 400+ models. Skills are plain markdown procedures; any model that can follow instructions can run them.
+All of them. The rule engine and linting are deterministic Python — zero model calls — so results are identical across OpenRouter.ai models. Skills are plain markdown procedures; any model that can follow instructions can run them.
 
 ## Requirements
 
