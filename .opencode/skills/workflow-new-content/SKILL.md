@@ -60,7 +60,9 @@ requirements for statistics.
 
 End with a pre-publish checklist: metadata lengths, heading hierarchy,
 image alt text, schema validated, internal links placed, URL slug,
-canonical, and IndexNow/submission step.
+canonical, and the indexing step — after publishing, submit the URL with
+`python scripts/indexnow.py submit --domain <domain> --url <new-url>`
+(and request indexing in Search Console when configured).
 
 ## Output
 

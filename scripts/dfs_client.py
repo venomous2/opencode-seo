@@ -24,6 +24,7 @@ Instant commands (single live call):
     business       Google Business Profile info for a business
     whois          WHOIS overview for a domain
     amazon         Amazon product SERP for a keyword (Merchant)
+    trends         Google Trends interest over time for keywords
 
 Site crawl commands (task-based On-Page API):
     crawl          Full flow: start crawl, wait, return pages + summary
@@ -86,6 +87,7 @@ ENDPOINTS = {
     "business": "/v3/business_data/google/my_business_info/live",
     "whois": "/v3/domain_analytics/whois/overview/live",
     "amazon": "/v3/merchant/amazon/products/live",
+    "trends": "/v3/keywords_data/google_trends/explore/live",
 }
 
 CRAWL_ENDPOINTS = {
@@ -240,6 +242,15 @@ def build_payload(command: str, args: argparse.Namespace) -> list[dict[str, Any]
     if command == "amazon":
         return [{"keyword": args.keyword, "location_name": loc,
                  "language_name": lang, "depth": limit}]
+    if command == "trends":
+        keywords = [k.strip() for k in args.keywords.split(",") if k.strip()]
+        task: dict[str, Any] = {"keywords": keywords, "location_name": loc,
+                                "language_name": lang, "type": "web"}
+        if args.date_from:
+            task["date_from"] = args.date_from
+        if args.date_to:
+            task["date_to"] = args.date_to
+        return [task]
     raise DfsError(f"Unknown command: {command}")
 
 
@@ -344,7 +355,9 @@ def main(argv: list[str] | None = None) -> int:
                                      description="DataForSEO client CLI")
     parser.add_argument("command", choices=sorted(ENDPOINTS) + list(CRAWL_COMMANDS))
     parser.add_argument("--keyword", help="keyword / brand / business name")
-    parser.add_argument("--keywords", help="comma-separated keyword list (volume)")
+    parser.add_argument("--keywords", help="comma-separated keyword list (volume, trends)")
+    parser.add_argument("--date-from", help="YYYY-MM-DD (trends)")
+    parser.add_argument("--date-to", help="YYYY-MM-DD (trends)")
     parser.add_argument("--target", help="domain or URL target")
     parser.add_argument("--target1", help="first domain (intersection)")
     parser.add_argument("--target2", help="second domain (intersection)")

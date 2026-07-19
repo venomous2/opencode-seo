@@ -3,6 +3,24 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.8.0] - 2026-07-19
+
+Data enrichment and distribution.
+
+### Added
+- **Google Trends** in `dfs_client.py`: `trends --keywords a,b,c
+  [--date-from --date-to]` — interest-over-time data for seasonality in
+  content calendars and briefs (cached 7 days)
+- **IndexNow submitter** (`scripts/indexnow.py`): per-domain key
+  generation and management, submit single URLs, URL lists, or whole
+  sitemaps to Bing/Yandex on publish
+- **PDF export** (`scripts/report_pdf.py`): renders HTML reports to PDF
+  using the headless browser already installed (Edge on Windows, Chrome/
+  Chromium elsewhere) — zero new dependencies. `seo-report-writer` now
+  exports the one-pager to PDF for emailing
+- 6 new tests (97 total); repository is now public with topics and a
+  proper description
+
 ## [0.7.1] - 2026-07-19
 
 ### Added

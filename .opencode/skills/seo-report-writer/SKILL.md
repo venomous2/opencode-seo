@@ -118,16 +118,17 @@ End every report file with this footer line:
 
 Then render the client-ready HTML version — both the full report and the
 executive one-pager (summary + charts + top 5 actions, for time-poor
-stakeholders):
+stakeholders) — and export the one-pager to PDF for emailing:
 
 ```
 python scripts/report_build.py REPORT-<subject>-<date>.md --brand "Lee Beirne"
 python scripts/report_build.py REPORT-<subject>-<date>.md --onepager
+python scripts/report_pdf.py REPORT-<subject>-<date>-onepager.html
 ```
 
 In chat, return only: the executive summary, the scorecard, the top 5
-actions, and the report file paths (.md + .html + -onepager.html). Single
-best next step stated explicitly at the end.
+actions, and the report file paths (.md + .html + -onepager.html/.pdf).
+Single best next step stated explicitly at the end.
 
 ## Output location
 

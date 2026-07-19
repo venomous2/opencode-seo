@@ -41,6 +41,7 @@ TTL = {
     "business": 7 * 86400,
     "whois": 30 * 86400,
     "amazon": 24 * 3600,
+    "trends": 7 * 86400,
 }
 DEFAULT_TTL = 24 * 3600
 

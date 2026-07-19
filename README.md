@@ -176,6 +176,8 @@ and load it with `--client <name>`.
 | `seo_lint.py` | "ESLint for SEO": lint URL/file/dir, `--min-score` CI gate |
 | `seo_fix.py` | Fix engine: lint findings → concrete patches with `.bak` backups |
 | `citation_score.py` | Citation readiness: 11 weighted criteria → 0-100 score + recommendations |
+| `indexnow.py` | Instant indexing pings to Bing/Yandex on publish |
+| `report_pdf.py` | HTML reports → PDF via the headless browser already installed |
 
 Plus `rules/` — 26 SEO checks as structured YAML (metadata, headings,
 indexability, content, images, schema, mobile, international, links), each

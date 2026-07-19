@@ -20,9 +20,11 @@ import citation_score  # noqa: E402
 import cost_ledger  # noqa: E402
 import dfs_client  # noqa: E402
 import drift_store  # noqa: E402
+import indexnow  # noqa: E402
 import log_analyzer  # noqa: E402
 import project_memory  # noqa: E402
 import report_build  # noqa: E402
+import report_pdf  # noqa: E402
 import rule_engine  # noqa: E402
 import schema_gen  # noqa: E402
 import seo_config  # noqa: E402
@@ -256,6 +258,62 @@ class TestDfsPayloads:
     def test_unknown_command_raises(self):
         with pytest.raises(dfs_client.DfsError):
             dfs_client.build_payload("nope", self.Args())
+
+    def test_trends_payload(self):
+        class TrendsArgs(self.Args):
+            date_from = "2025-01-01"
+            date_to = "2026-01-01"
+        payload = dfs_client.build_payload("trends", TrendsArgs())
+        assert payload[0]["keywords"] == ["a", "b", "c"]
+        assert payload[0]["date_from"] == "2025-01-01"
+        assert payload[0]["type"] == "web"
+
+
+# ---------------------------------------------------------------------------
+# indexnow
+# ---------------------------------------------------------------------------
+
+class TestIndexNow:
+    @pytest.fixture(autouse=True)
+    def temp_keys(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(indexnow, "KEYS_FILE", tmp_path / "keys.json")
+        monkeypatch.setattr(indexnow, "SUITE_DIR", tmp_path)
+        yield
+
+    def test_init_generates_and_persists_key(self):
+        first = indexnow.init_key("example.com")
+        assert first["new"] is True
+        assert len(first["key"]) == 32
+        assert first["key_file_url"].endswith(f"/{first['key']}.txt")
+        second = indexnow.init_key("example.com")
+        assert second["new"] is False
+        assert second["key"] == first["key"]  # stable, not rotated
+
+    def test_submit_without_key_errors(self):
+        with pytest.raises(indexnow.IndexNowError, match="No IndexNow key"):
+            indexnow.submit("unknown.example", ["https://unknown.example/a"])
+
+    def test_submit_empty_urls_errors(self):
+        indexnow.init_key("example.com")
+        with pytest.raises(indexnow.IndexNowError, match="No URLs"):
+            indexnow.submit("example.com", [])
+
+
+# ---------------------------------------------------------------------------
+# report_pdf
+# ---------------------------------------------------------------------------
+
+class TestReportPdf:
+    def test_find_browser_returns_path_or_none(self, monkeypatch):
+        monkeypatch.setattr(report_pdf, "CANDIDATES", [])
+        monkeypatch.setattr(report_pdf.shutil, "which", lambda name: None)
+        assert report_pdf.find_browser() is None
+
+    def test_find_browser_uses_which_fallback(self, monkeypatch):
+        monkeypatch.setattr(report_pdf, "CANDIDATES", [])
+        monkeypatch.setattr(report_pdf.shutil, "which",
+                            lambda name: "/usr/bin/chromium" if name == "chromium" else None)
+        assert report_pdf.find_browser() == "/usr/bin/chromium"
 
 
 # ---------------------------------------------------------------------------
