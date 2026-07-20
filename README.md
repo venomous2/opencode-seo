@@ -9,7 +9,7 @@
 
 Under the bonnet: 82 skills, 4 specialist agents, 8 slash commands, 26 self-testing rules, a fix engine, and a citation scorer — covering technical SEO, content strategy, AI search (GEO/AEO), competitive research, local SEO, and e-commerce. Google APIs (Search Console, GA4, PageSpeed, CrUX) are optional enrichment tiers.
 
-**Built by Lee Beirne.** Inspired by [`AgriciDaniel/claude-seo`](https://github.com/AgriciDaniel/claude-seo) — an original re-implementation for OpenCode, modified and extended by Lee Beirne (DataForSEO-mandatory data layer, three-layer architecture, project memory). All skill content is original; credit for the underlying concept goes to Agrici Daniel.
+Inspired by [`AgriciDaniel/claude-seo`](https://github.com/AgriciDaniel/claude-seo) — an original re-implementation for OpenCode, modified and extended by Lee Beirne (DataForSEO-mandatory data layer, three-layer architecture, project memory). All skill content is original; credit for the underlying concept goes to Agrici Daniel.
 
 ## Contents
 
