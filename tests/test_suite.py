@@ -268,6 +268,19 @@ class TestDfsPayloads:
         assert payload[0]["date_from"] == "2025-01-01"
         assert payload[0]["type"] == "web"
 
+    def test_location_aliases(self):
+        assert dfs_client.normalise_location("UK") == "United Kingdom"
+        assert dfs_client.normalise_location("usa") == "United States"
+        assert dfs_client.normalise_location("U.S.") == "United States"
+        assert dfs_client.normalise_location("United Kingdom") == "United Kingdom"
+        assert dfs_client.normalise_location("Narnia") == "Narnia"
+
+    def test_location_alias_applied_in_payload(self):
+        class UkArgs(self.Args):
+            location = "UK"
+        payload = dfs_client.build_payload("volume", UkArgs())
+        assert payload[0]["location_name"] == "United Kingdom"
+
 
 # ---------------------------------------------------------------------------
 # indexnow

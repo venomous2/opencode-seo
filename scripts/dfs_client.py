@@ -99,6 +99,28 @@ CRAWL_ENDPOINTS = {
 
 CRAWL_COMMANDS = ("crawl", "crawl-start", "crawl-status", "crawl-pages")
 
+# Common aliases -> official DataForSEO location_name values. Prevents
+# 40501 "Invalid Field: 'location_name'" task errors when a user (or model)
+# passes "UK" instead of "United Kingdom", etc.
+LOCATION_ALIASES = {
+    "uk": "United Kingdom",
+    "u.k.": "United Kingdom",
+    "gb": "United Kingdom",
+    "great britain": "United Kingdom",
+    "britain": "United Kingdom",
+    "usa": "United States",
+    "u.s.a.": "United States",
+    "us": "United States",
+    "u.s.": "United States",
+    "america": "United States",
+    "united states of america": "United States",
+    "uae": "United Arab Emirates",
+}
+
+
+def normalise_location(location: str) -> str:
+    return LOCATION_ALIASES.get(location.strip().lower(), location)
+
 
 class DfsError(RuntimeError):
     pass
@@ -187,7 +209,7 @@ def items(body: dict[str, Any]) -> list[dict[str, Any]]:
 # --------------------------------------------------------------------------
 
 def build_payload(command: str, args: argparse.Namespace) -> list[dict[str, Any]]:
-    loc, lang, limit = args.location, args.language, args.limit
+    loc, lang, limit = normalise_location(args.location), args.language, args.limit
     if command == "serp":
         return [{
             "keyword": args.keyword, "location_name": loc, "language_name": lang,
@@ -268,12 +290,19 @@ def run_instant(command: str, args: argparse.Namespace) -> dict[str, Any]:
             response_cache.put(command, payload, body)
             cost_ledger.log(command, body.get("cost"),
                             detail=(args.keyword or args.target or args.url or "")[:120])
+    task_errors = [
+        {"status_code": t.get("status_code"),
+         "status_message": t.get("status_message")}
+        for t in tasks(body)
+        if t.get("status_code") not in (20000, None)
+    ]
     return {
         "command": command,
         "cached": cache_hit,
         "cost": body.get("cost"),
         "tasks_count": body.get("tasks_count"),
         "tasks_error": body.get("tasks_error"),
+        "task_errors": task_errors or None,
         "time": body.get("time"),
         "result": [t.get("result") for t in tasks(body)],
     }

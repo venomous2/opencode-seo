@@ -3,6 +3,15 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.8.1] - 2026-07-20
+
+### Added
+- Location alias normalisation in `dfs_client.py`: "UK", "GB", "USA", etc.
+  auto-correct to official DataForSEO location names (prevents 40501
+  "Invalid Field: 'location_name'" task failures)
+- Task-level error messages now surface in CLI output (`task_errors`) so
+  parameter problems are no longer mistaken for credential failures
+
 ## [0.8.0] - 2026-07-19
 
 Data enrichment and distribution.

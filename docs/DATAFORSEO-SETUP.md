@@ -65,4 +65,10 @@ python scripts/dfs_client.py serp --keyword "coffee" --sandbox --pretty
 - **401 / authentication errors** — you used your account password instead of
   the API password from the dashboard.
 - **402 / payment errors** — top up your DataForSEO balance.
+- **`task_errors: [40501 Invalid Field: 'location_name']`** — the location
+  name isn't one DataForSEO recognises. Use full names: "United Kingdom",
+  "United States". Common aliases (UK, USA, GB…) are auto-corrected.
 - **Timeout on large pulls** — lower `--limit` (default 100).
+- **`tasks_error: 1` with zero cost** — the request reached DataForSEO but a
+  task parameter was rejected. Read `task_errors` in the output for the
+  exact reason; it is NOT a credentials problem.
