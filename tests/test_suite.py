@@ -21,6 +21,8 @@ import cost_ledger  # noqa: E402
 import dfs_client  # noqa: E402
 import drift_store  # noqa: E402
 import indexnow  # noqa: E402
+import link_graph  # noqa: E402
+import link_graph_render  # noqa: E402
 import log_analyzer  # noqa: E402
 import project_memory  # noqa: E402
 import report_build  # noqa: E402
@@ -497,8 +499,61 @@ class TestDriftStore:
 
 
 # ---------------------------------------------------------------------------
-# log_analyzer
+# link_graph + renderer
 # ---------------------------------------------------------------------------
+
+CRAWL_FIXTURE = {
+    "summary": {"start_url": "https://x.com"},
+    "pages": [
+        {"url": "https://x.com", "status": 200,
+         "internal_outlinks": [{"url": "https://x.com/a", "anchor": "A"},
+                               {"url": "https://x.com/b", "anchor": "click here"}]},
+        {"url": "https://x.com/a", "status": 200,
+         "internal_outlinks": [{"url": "https://x.com", "anchor": "Home"},
+                               {"url": "https://x.com/c", "anchor": "C"}]},
+        {"url": "https://x.com/b", "status": 200,
+         "internal_outlinks": [{"url": "https://x.com", "anchor": "Home"}]},
+        {"url": "https://x.com/c", "status": 200, "internal_outlinks": []},
+        {"url": "https://x.com/orphan", "status": 200, "internal_outlinks": []},
+    ],
+}
+
+
+class TestLinkGraph:
+    def test_analyse_orphans_and_links(self):
+        result = link_graph.analyse(CRAWL_FIXTURE["pages"], "https://x.com")
+        assert result["orphan_pages"] == ["https://x.com/orphan"]
+        top = result["most_linked_pages"][0]
+        assert top["url"] == "https://x.com" and top["inlinks"] == 2
+        assert result["depth_distribution"] == {0: 1, 1: 2, 2: 1}
+        assert result["unreachable_from_homepage"] == ["https://x.com/orphan"]
+        assert result["anchor_quality"]["generic_anchor_count"] == 1
+
+    def test_layout_positions_all_reachable(self):
+        graph = link_graph_render.layout(CRAWL_FIXTURE)
+        roles = {n["url"]: n["role"] for n in graph["nodes"]}
+        assert roles["https://x.com"] == "home"
+        # a page with zero inlinks is unreachable from home by definition
+        assert roles["https://x.com/orphan"] == "unreachable"
+        home = next(n for n in graph["nodes"] if n["role"] == "home")
+        assert home["x"] == link_graph_render.CX
+        assert home["y"] == link_graph_render.CY
+        depth1 = [n for n in graph["nodes"] if n["depth"] == 1]
+        assert all(n["x"] != link_graph_render.CX for n in depth1)
+
+    def test_svg_contains_nodes_and_edges(self):
+        graph = link_graph_render.layout(CRAWL_FIXTURE)
+        svg = link_graph_render.render_svg(graph)
+        assert svg.count("<circle") >= len(CRAWL_FIXTURE["pages"])
+        assert "<line" in svg
+        assert "<svg" in svg
+
+    def test_render_html_keeps_svg_unescaped(self):
+        graph = link_graph_render.layout(CRAWL_FIXTURE)
+        analysis = link_graph.analyse(CRAWL_FIXTURE["pages"], "https://x.com")
+        html = link_graph_render.render_html(CRAWL_FIXTURE, analysis, graph)
+        assert "<svg" in html
+        assert "&lt;svg" not in html
 
 SAMPLE_LOG = (
     '1.1.1.1 - - [18/Jul/2026:10:00:01 +0000] "GET /a HTTP/1.1" 200 1 "-" '

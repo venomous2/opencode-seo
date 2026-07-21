@@ -89,6 +89,20 @@ and example URLs:
 - Single best next step: the highest-severity, highest-count fix —
   usually 5xx errors, accidental noindex, or mass duplicate titles.
 
+## Visual link graph (client-facing)
+
+When the user asks to see the link graph (or the crawl reveals structural
+issues worth showing), produce the visual version:
+
+1. Save the crawl JSON: `python scripts/site_crawler.py --url <site> > crawl.json`
+2. Render: `python scripts/link_graph_render.py --file crawl.json --pdf -o "%SEO_REPORTS_DIR%\<domain>\LINK-GRAPH-<domain>-<date>.html"`
+
+The renderer produces a branded radial graph (homepage at the centre,
+depth rings, node size = inlinks, orphans in pink, hubs in yellow) as HTML
++ PDF — pure SVG, no JavaScript, prints cleanly. Show it in chat with the
+key numbers: orphan count, unreachable count, top-3 most-linked pages,
+generic-anchor share.
+
 ## Output location
 
 Save generated files to the SEO reports directory - `%SEO_REPORTS_DIR%\<name>\` on Windows, `$SEO_REPORTS_DIR/<name>/` on macOS/Linux - when the `SEO_REPORTS_DIR` environment variable is set; otherwise the current working directory. Create the subfolder if it doesn't exist.

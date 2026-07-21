@@ -3,6 +3,17 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.10.1] - 2026-07-21
+
+### Added
+- **`link_graph_render.py`** — client-facing visual link graph: branded
+  radial SVG (homepage at the centre, depth rings, node size = inlinks,
+  colour-coded by role: home/hub/orphan/unreachable) with legend, stats
+  cards, most-linked tables, and orphan list. Pure SVG, no JavaScript —
+  prints cleanly to PDF (`--pdf` flag). `crawl-analyzer` now produces it
+  whenever the user asks to see the link graph
+- 4 new tests (layout, roles, SVG, escaping; 107 total)
+
 ## [0.10.0] - 2026-07-21
 
 Crawler v2 and the internal link graph.
