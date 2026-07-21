@@ -554,6 +554,8 @@ class TestLinkGraph:
         html = link_graph_render.render_html(CRAWL_FIXTURE, analysis, graph)
         assert "<svg" in html
         assert "&lt;svg" not in html
+        assert '<div class="legend">' in html
+        assert "&lt;div" not in html
 
 SAMPLE_LOG = (
     '1.1.1.1 - - [18/Jul/2026:10:00:01 +0000] "GET /a HTTP/1.1" 200 1 "-" '

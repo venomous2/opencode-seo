@@ -213,7 +213,7 @@ def render_html(crawl: dict[str, Any], analysis: dict[str, Any],
 
     body_md = f"""## Internal link graph
 
-<div class="legend">{legend}</div>
+%%LEGEND_HTML%%
 
 %%LINKGRAPH_SVG%%
 
@@ -238,9 +238,13 @@ def render_html(crawl: dict[str, Any], analysis: dict[str, Any],
 > Crawl of {summary.get('pages_crawled', '?')} pages from {graph['start']}.
 """
     body, toc = report_build.md_to_html(body_md)
-    # the SVG must bypass markdown escaping — swap the placeholder afterwards
+    # raw HTML must bypass markdown escaping — swap placeholders afterwards
     body = body.replace("<p>%%LINKGRAPH_SVG%%</p>", render_svg(graph))
     body = body.replace("%%LINKGRAPH_SVG%%", render_svg(graph))
+    body = body.replace("<p>%%LEGEND_HTML%%</p>",
+                        f'<div class="legend">{legend}</div>')
+    body = body.replace("%%LEGEND_HTML%%",
+                        f'<div class="legend">{legend}</div>')
     return report_build.SHELL.format(
         title=f"Internal link graph — {domain}",
         brand="Lee Beirne",
