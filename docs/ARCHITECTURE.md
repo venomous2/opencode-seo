@@ -56,7 +56,8 @@ score) so the orchestrator can synthesize a 0-100 site score.
 | `cache.py` | Disk response cache with per-endpoint TTLs |
 | `cost_ledger.py` | JSONL ledger of every billed DataForSEO call |
 | `drift_store.py` | Timestamped per-domain SEO snapshots + compare |
-| `site_crawler.py` | Free built-in polite mini crawler (< 200 pages) |
+| `site_crawler.py` | Built-in concurrent crawler (v2): sitemap cross-check, near-duplicate detection, soft-404 probe, anchors, OG/Twitter, mixed content, security headers |
+| `link_graph.py` | Internal link graph analysis (orphans, hubs, depth, anchor quality) from crawl data |
 | `log_analyzer.py` | Access-log bot/crawl behaviour analysis |
 | `report_build.py` | Markdown → branded standalone HTML reports |
 | `schema_gen.py` | JSON-LD generator for 18 schema.org types |

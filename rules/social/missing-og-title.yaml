@@ -1,0 +1,20 @@
+id: missing-og-title
+category: social
+severity: low
+confidence: high
+detect:
+  field: og_title
+  condition: empty
+why: >
+  Without an og:title, Facebook, LinkedIn, Slack and other platforms guess
+  a headline when the page is shared — often a poor one. Shared links with
+  weak previews earn fewer clicks, which costs both traffic and link-earning
+  potential.
+fix:
+  guidance: >
+    Add <meta property="og:title" content="..."> to the <head>, matching
+    the page's title or a slightly more social-friendly variant. Pair it
+    with og:image for a complete share card.
+test:
+  expect_fail: {og_title: ""}
+  expect_pass: {og_title: "Best Coffee Grinders"}

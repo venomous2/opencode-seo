@@ -1,0 +1,19 @@
+id: missing-hsts
+category: security
+severity: low
+confidence: high
+detect:
+  field: security_hsts
+  condition: is_false
+why: >
+  Without an HSTS header, users can still reach the HTTP version of the
+  site before any redirect runs, leaving the first connection unprotected.
+  HSTS tells browsers to only ever use HTTPS for this domain.
+fix:
+  guidance: >
+    Add a Strict-Transport-Security response header, for example
+    "max-age=31536000; includeSubDomains". Note this is set at server/CDN
+    level, not in page markup.
+test:
+  expect_fail: {security_hsts: false}
+  expect_pass: {security_hsts: true}

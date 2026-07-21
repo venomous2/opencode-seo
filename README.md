@@ -165,7 +165,8 @@ and load it with `--client <name>`.
 | `cache.py` | Response cache (per-endpoint TTLs) — avoids paying twice |
 | `cost_ledger.py` | DataForSEO spend ledger — totals by period and command |
 | `drift_store.py` | Timestamped SEO snapshots per domain + diff/compare |
-| `site_crawler.py` | Free built-in mini crawler (< 200 pages, robots-aware) |
+| `site_crawler.py` | Concurrent site crawler: sitemap cross-check, near-duplicates, soft-404 probe, OG/Twitter, security headers |
+| `link_graph.py` | Internal link graph: orphans, hubs, click-depth, anchor quality |
 | `log_analyzer.py` | Server-log bot/crawl analysis |
 | `report_build.py` | Markdown → branded standalone HTML reports |
 | `schema_gen.py` | JSON-LD generator (18 schema.org types) |

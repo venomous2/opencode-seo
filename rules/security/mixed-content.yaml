@@ -1,0 +1,21 @@
+id: mixed-content
+category: security
+severity: high
+confidence: high
+detect:
+  field: mixed_content_count
+  condition: gte
+  value: 1
+why: >
+  An HTTPS page loading HTTP resources (images, scripts, stylesheets)
+  triggers mixed-content warnings and browsers block active mixed content
+  outright. That breaks functionality and undermines the trust signal HTTPS
+  is meant to provide.
+fix:
+  guidance: >
+    Update every resource URL to https:// (or protocol-relative //). Check
+    images, scripts and stylesheets — hard-coded http:// links in templates
+    and CMS content are the usual culprits.
+test:
+  expect_fail: {mixed_content_count: 3}
+  expect_pass: {mixed_content_count: 0}

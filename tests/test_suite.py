@@ -148,9 +148,15 @@ class TestSeoLint:
                 + "T" * 55 + "</title>"
                 + '<meta name="description" content="' + "d" * 140 + '">'
                 + '<meta name="viewport" content="width=device-width">'
+                + '<meta property="og:title" content="T">'
+                + '<meta name="twitter:card" content="summary">'
                 + '<link rel="canonical" href="https://x.com/p">'
                 + '<script type="application/ld+json">'
                 + '{"@context":"https://schema.org","@type":"Article"}'
+                + '</script><script type="application/ld+json">'
+                + '{"@context":"https://schema.org","@type":"BreadcrumbList"}'
+                + '</script><script type="application/ld+json">'
+                + '{"@context":"https://schema.org","@type":"Organization"}'
                 + "</script></head><body>"
                 + "<h1>Topic</h1><h2>Section</h2><p>"
                 + " ".join(["word"] * 350)

@@ -67,6 +67,17 @@ Produced by the crawler/lint parser (`site_crawler.PageParser`):
 | `html_lang` | str | |
 | `internal_link_count`, `external_link_count` | int | |
 | `first_h2_para_words` | int | answer-block heuristic |
+| `og_title`, `og_image` | str | Open Graph fields |
+| `twitter_card` | str | twitter:card meta |
+| `mixed_content_count` | int | HTTP resources on the page |
+| `security_hsts`, `security_csp`, `security_xfo`, `security_xcto` | bool | response headers (skipped for local files) |
+| `h2`, `list_count`, `time_elements`, `jsonld_has_dates`, `meta_author`, `has_rel_author`, `number_density` | — | citation-scorer signals |
+
+The crawler also performs site-level analyses in its summary output:
+sitemap cross-check (crawled-not-in-sitemap, sitemap-not-crawled, non-200
+in sitemap), near-duplicate pairs (shingle Jaccard ≥ 0.9), and a soft-404
+probe (requests impossible URLs to detect infinite URL spaces). These are
+crawl findings, not per-page rules.
 
 ## Conditions and when they fire
 

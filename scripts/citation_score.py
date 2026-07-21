@@ -244,12 +244,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.url:
-        status, content_type, html_text = fetch(args.url, args.timeout)
-        if status != 200 or "html" not in content_type.lower():
-            print(json.dumps({"error": f"Fetch failed: HTTP {status}"}))
+        result = fetch(args.url, args.timeout)
+        if result.status != 200 or "html" not in result.content_type.lower():
+            print(json.dumps({"error": f"Fetch failed: HTTP {result.status}"}))
             return 1
-        page = seo_lint.parse_html(html_text, args.url)
-        page["status"] = status
+        page = seo_lint.parse_html(result.body, args.url)
+        page["status"] = result.status
     else:
         path = Path(args.file)
         if not path.is_file():

@@ -1,0 +1,19 @@
+id: missing-twitter-card
+category: social
+severity: low
+confidence: high
+detect:
+  field: twitter_card
+  condition: empty
+why: >
+  Without a twitter:card meta tag, links shared on X/Twitter render as plain
+  URLs instead of rich cards. Cards with a title and image measurably
+  out-click bare links.
+fix:
+  guidance: >
+    Add <meta name="twitter:card" content="summary_large_image"> plus
+    twitter:title and twitter:image tags. "summary_large_image" earns the
+    most visible card format.
+test:
+  expect_fail: {twitter_card: ""}
+  expect_pass: {twitter_card: "summary_large_image"}

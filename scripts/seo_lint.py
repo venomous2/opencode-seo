@@ -41,7 +41,8 @@ def parse_html(html_text: str, url: str = "") -> dict[str, Any]:
         pass
     # classify links: same-host or relative = internal, foreign = external
     page_host = urllib.parse.urlparse(url).netloc.lower() if url else ""
-    for href in parser.links:
+    for link in parser.links:
+        href = link["href"]
         if href.startswith(("http://", "https://")):
             link_host = urllib.parse.urlparse(href).netloc.lower()
             if page_host and link_host == page_host:
@@ -80,6 +81,10 @@ def parse_html(html_text: str, url: str = "") -> dict[str, Any]:
         "external_link_count": parser.external_link_count,
         "first_h2_para_words": parser.first_h2_para_words,
         "first_h2_para_text": parser.first_h2_para_text,
+        "og_title": parser.og_title,
+        "og_image": parser.og_image,
+        "twitter_card": parser.twitter_card,
+        "mixed_content_count": parser.mixed_content_count,
     }
 
 
@@ -88,8 +93,11 @@ def lint_pages(pages: list[dict[str, Any]], rules: list[dict[str, Any]],
     if category:
         rules = [r for r in rules if r["category"] == category]
     if local:
-        # URL-dependent rules (e.g. HTTPS) are meaningless for local files
-        rules = [r for r in rules if r["detect"]["field"] != "url"]
+        # URL-dependent rules (e.g. HTTPS) and header-dependent rules
+        # (security headers) are meaningless for local files
+        rules = [r for r in rules
+                 if r["detect"]["field"] != "url"
+                 and not r["detect"]["field"].startswith("security_")]
     results = []
     for page in pages:
         outcome = rule_engine.run(page, rules)
@@ -138,12 +146,16 @@ def main(argv: list[str] | None = None) -> int:
 
     pages: list[dict[str, Any]] = []
     if args.url:
-        status, content_type, html_text = fetch(args.url, args.timeout)
-        if status != 200 or "html" not in content_type.lower():
-            print(json.dumps({"error": f"Fetch failed: HTTP {status}"}))
+        result = fetch(args.url, args.timeout)
+        if result.status != 200 or "html" not in result.content_type.lower():
+            print(json.dumps({"error": f"Fetch failed: HTTP {result.status}"}))
             return 1
-        page = parse_html(html_text, args.url)
-        page["status"] = status
+        page = parse_html(result.body, args.url)
+        page["status"] = result.status
+        page["security_hsts"] = "strict-transport-security" in result.headers
+        page["security_csp"] = "content-security-policy" in result.headers
+        page["security_xfo"] = "x-frame-options" in result.headers
+        page["security_xcto"] = "x-content-type-options" in result.headers
         pages.append(page)
     elif args.file:
         path = Path(args.file)

@@ -3,6 +3,28 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.10.0] - 2026-07-21
+
+Crawler v2 and the internal link graph.
+
+### Added
+- **site_crawler v2**: concurrent fetching (configurable workers + per-host
+  politeness), sitemap.xml cross-check (crawled-not-in-sitemap,
+  sitemap-not-crawled, non-200 in sitemap), near-duplicate detection
+  (shingle Jaccard ≥ 0.9), soft-404 probe (detects infinite URL spaces),
+  anchor text on every link, Open Graph / Twitter Card fields, mixed-content
+  detection, and security headers (HSTS, CSP, X-Frame-Options,
+  X-Content-Type-Options)
+- **`link_graph.py`** — internal link graph analysis from crawl data:
+  orphan pages, most-linked pages, hub pages, click-depth distribution,
+  unreachable pages, and anchor-text quality (generic-anchor share)
+- **5 new rules** (31 total): `missing-og-title`, `missing-twitter-card`
+  (new social category), `mixed-content`, `missing-hsts`, `missing-csp`
+  (new security category; header rules auto-skip for local files)
+
+### Changed
+- `fetch()` now returns headers alongside the body (callers updated)
+
 ## [0.9.0] - 2026-07-20
 
 Client-facing deliverables everywhere.

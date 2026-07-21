@@ -1,0 +1,19 @@
+id: missing-csp
+category: security
+severity: low
+confidence: medium
+detect:
+  field: security_csp
+  condition: is_false
+why: >
+  A Content-Security-Policy header limits which scripts and resources the
+  page may load, sharply reducing the impact of injected content (XSS).
+  Content-heavy sites are common injection targets.
+fix:
+  guidance: >
+    Add a Content-Security-Policy header at server/CDN level. Start
+    permissive (default-src 'self') and tighten over time — a strict CSP
+    deployed all at once can break legitimate inline scripts.
+test:
+  expect_fail: {security_csp: false}
+  expect_pass: {security_csp: true}
