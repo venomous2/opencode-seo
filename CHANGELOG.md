@@ -3,6 +3,22 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.9.0] - 2026-07-20
+
+Client-facing deliverables everywhere.
+
+### Added
+- **`report_publish.py`** — one command turns any suite markdown report
+  into the full client set: branded HTML + print-ready PDF, plus executive
+  one-pager HTML + PDF. Skips PDF gracefully when no headless browser is
+  present
+- The publish step is now wired into **all 37 file-producing skills and
+  workflows** — every completed skill/workflow produces client-facing
+  HTML + PDF as standard, not just `.md` files
+- Full reports (not only one-pagers) now get PDF versions as standard in
+  the report writer
+- 6 new tests (103 total)
+
 ## [0.8.1] - 2026-07-20
 
 ### Added

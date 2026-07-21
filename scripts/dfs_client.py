@@ -434,4 +434,10 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    # Windows consoles default to cp1252; API content can contain exotic
+    # unicode. Force UTF-8 output (harmless elsewhere).
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, OSError):
+        pass
     sys.exit(main())

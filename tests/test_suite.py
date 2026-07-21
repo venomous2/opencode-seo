@@ -25,6 +25,7 @@ import log_analyzer  # noqa: E402
 import project_memory  # noqa: E402
 import report_build  # noqa: E402
 import report_pdf  # noqa: E402
+import report_publish  # noqa: E402
 import rule_engine  # noqa: E402
 import schema_gen  # noqa: E402
 import seo_config  # noqa: E402
@@ -327,6 +328,47 @@ class TestReportPdf:
         monkeypatch.setattr(report_pdf.shutil, "which",
                             lambda name: "/usr/bin/chromium" if name == "chromium" else None)
         assert report_pdf.find_browser() == "/usr/bin/chromium"
+
+
+# ---------------------------------------------------------------------------
+# report_publish
+# ---------------------------------------------------------------------------
+
+class TestReportPublish:
+    MD = ("# Test Report\n\n## Executive summary\n\nThings are fine.\n\n"
+          "## Findings\n\n| Severity | Item |\n|---|---|\n| Low | x |\n")
+
+    def test_missing_file(self, tmp_path):
+        result = report_publish.publish(tmp_path / "nope.md", "B", None, "F",
+                                        onepager=True, html_only=True)
+        assert "error" in result
+
+    def test_html_only_produces_html_and_onepager(self, tmp_path):
+        md = tmp_path / "r.md"
+        md.write_text(self.MD, encoding="utf-8")
+        result = report_publish.publish(md, "Lee Beirne", None,
+                                        report_build.DEFAULT_FOOTER,
+                                        onepager=True, html_only=True)
+        assert Path(result["html"]).is_file()
+        assert Path(result["onepager_html"]).is_file()
+        assert "skipped" in result["pdf"]
+
+    def test_no_onepager(self, tmp_path):
+        md = tmp_path / "r.md"
+        md.write_text(self.MD, encoding="utf-8")
+        result = report_publish.publish(md, "Lee Beirne", None,
+                                        report_build.DEFAULT_FOOTER,
+                                        onepager=False, html_only=True)
+        assert "html" in result
+        assert "onepager_html" not in result
+
+    def test_no_browser_graceful_skip(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(report_pdf, "find_browser", lambda: None)
+        md = tmp_path / "r.md"
+        md.write_text(self.MD, encoding="utf-8")
+        result = report_publish.publish(md, "B", None, "F",
+                                        onepager=True, html_only=False)
+        assert "no headless browser" in result["pdf"]
 
 
 # ---------------------------------------------------------------------------

@@ -116,19 +116,20 @@ Write the full report to `REPORT-<subject>-<date>.md` with this structure:
 End every report file with this footer line:
 `Report built by Lee Beirne - https://leebeirne.com`
 
-Then render the client-ready HTML version — both the full report and the
-executive one-pager (summary + charts + top 5 actions, for time-poor
-stakeholders) — and export the one-pager to PDF for emailing:
+Then produce the full client deliverable set with one command — branded
+HTML + PDF for the full report AND the executive one-pager:
 
 ```
-python scripts/report_build.py REPORT-<subject>-<date>.md --brand "Lee Beirne"
-python scripts/report_build.py REPORT-<subject>-<date>.md --onepager
-python scripts/report_pdf.py REPORT-<subject>-<date>-onepager.html
+python scripts/report_publish.py REPORT-<subject>-<date>.md
 ```
+
+Outputs: `.html` + `.pdf` (full report) and `-onepager.html` +
+`-onepager.pdf` (executive version for time-poor stakeholders). Send the
+one-pager PDF, attach the full PDF.
 
 In chat, return only: the executive summary, the scorecard, the top 5
-actions, and the report file paths (.md + .html + -onepager.html/.pdf).
-Single best next step stated explicitly at the end.
+actions, and the report file paths. Single best next step stated
+explicitly at the end.
 
 ## Output location
 

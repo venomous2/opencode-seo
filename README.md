@@ -178,6 +178,7 @@ and load it with `--client <name>`.
 | `citation_score.py` | Citation readiness: 11 weighted criteria → 0-100 score + recommendations |
 | `indexnow.py` | Instant indexing pings to Bing/Yandex on publish |
 | `report_pdf.py` | HTML reports → PDF via the headless browser already installed |
+| `report_publish.py` | One command: markdown → branded HTML + PDF + executive one-pagers |
 
 Plus `rules/` — 26 SEO checks as structured YAML (metadata, headings,
 indexability, content, images, schema, mobile, international, links), each
