@@ -99,6 +99,18 @@ def parse_html(html_text: str, url: str = "") -> dict[str, Any]:
         "iframes_total": parser.iframes_total,
         "iframes_missing_title": parser.iframes_missing_title,
         "positive_tabindex": parser.positive_tabindex,
+        "cta_count": parser.cta_count,
+        "cta_above_fold": parser.cta_above_fold,
+        "cta_texts": parser.cta_texts,
+        "primary_cta_generic": parser.primary_cta_generic,
+        "form_count": parser.form_count,
+        "form_fields_max": parser.form_fields_max,
+        "form_has_captcha": parser.form_has_captcha,
+        "tel_links": parser.tel_links,
+        "trust_signal_count": parser.trust_signal_count,
+        "urgency_signal_count": parser.urgency_signal_count,
+        "faq_present": parser.faq_present,
+        "live_chat": parser.live_chat,
     }
 
 

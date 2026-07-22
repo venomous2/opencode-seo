@@ -40,6 +40,38 @@ GENERIC_ANCHOR_TEXTS = {
     "this", "this page", "find out more", "see more", "view more",
 }
 
+CTA_PHRASES = {
+    "get started", "sign up", "signup", "register", "buy now", "buy",
+    "shop", "order", "book", "book a demo", "book a consultation",
+    "book a call", "demo", "request a demo", "get a quote", "get quote",
+    "quote", "contact us", "contact", "call us", "call now", "phone",
+    "download", "subscribe", "join", "try", "start free", "free trial",
+    "add to cart", "add to basket", "checkout", "enquire", "enquiry",
+    "apply", "claim", "get my", "schedule", "reserve", "submit", "send",
+}
+
+GENERIC_CTA_TEXTS = {"submit", "click here", "go", "send", "ok", "more",
+                     "learn more"}
+
+TRUST_KEYWORDS = (
+    "guarantee", "money-back", "money back", "refund", "warranty",
+    "testimonial", "testimonials", "reviews", "reviewed", "rated",
+    "stars", "trusted by", "as seen", "certified", "accredited",
+    "award", "secure checkout", "ssl secure", "verified", "trustpilot",
+    "feefo", "google reviews", "years of experience", "years in business",
+)
+
+URGENCY_KEYWORDS = (
+    "limited time", "limited offer", "ends soon", "offer ends", "% off",
+    "sale ends", "last chance", "countdown", "today only", "expires",
+    "only a few left", "selling fast",
+)
+
+LIVE_CHAT_MARKERS = (
+    "intercom", "drift", "zendesk", "tidio", "livechat", "crisp",
+    "live-chat", "live_chat", "chat-widget", "olark",
+)
+
 FetchResult = namedtuple("FetchResult", ["status", "content_type", "body", "headers"])
 
 
@@ -93,6 +125,25 @@ class PageParser(HTMLParser):
         self.iframes_total = 0
         self.iframes_missing_title = 0
         self.positive_tabindex = 0
+        # --- CRO fields ---
+        self.cta_count = 0
+        self.cta_above_fold = 0
+        self.cta_texts: list[str] = []
+        self.primary_cta_generic = False
+        self.form_count = 0
+        self.form_fields_max = 0
+        self.form_has_captcha = False
+        self.tel_links = 0
+        self.trust_signal_count = 0
+        self.urgency_signal_count = 0
+        self.faq_present = False
+        self.live_chat = False
+        self._doc_position = 0
+        self._cta_positions: list[int] = []
+        self._element_index = 0
+        self._body_index = 0
+        self._form_depth = 0
+        self._form_fields = 0
         self._label_targets: set[str] = set()
         self._label_depth = 0
         self._pending_inputs: list[dict[str, Any]] = []
@@ -120,7 +171,13 @@ class PageParser(HTMLParser):
         self._skip_depth = 0
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self._element_index += 1
         attr = dict(attrs)
+        marker_blob = " ".join([
+            (attr.get("id") or ""), (attr.get("class") or ""),
+            (attr.get("src") or "")]).lower()
+        if any(m in marker_blob for m in LIVE_CHAT_MARKERS):
+            self.live_chat = True
         if attr.get("id"):
             self._ids.append(attr["id"])
         tabindex = attr.get("tabindex") or ""
@@ -128,6 +185,8 @@ class PageParser(HTMLParser):
             self.positive_tabindex += 1
         if tag == "html" and attr.get("lang"):
             self.html_lang = attr["lang"].strip()
+        if tag == "body":
+            self._body_index = self._element_index
         if tag == "title":
             self._in_title = True
         elif tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
@@ -151,7 +210,13 @@ class PageParser(HTMLParser):
             self._label_depth += 1
             if attr.get("for"):
                 self._label_targets.add(attr["for"].strip())
+        elif tag == "form":
+            self.form_count += 1
+            self._form_depth += 1
+            self._form_fields = 0
         elif tag in ("input", "select", "textarea"):
+            if self._form_depth:
+                self._form_fields += 1
             input_type = (attr.get("type") or "text").lower()
             if tag != "input" or input_type not in (
                     "hidden", "submit", "button", "reset"):
@@ -167,7 +232,10 @@ class PageParser(HTMLParser):
             if tag == "script" and (attr.get("type") or "").lower() == "application/ld+json":
                 self._in_jsonld = True
                 self._jsonld_parts = []
-            if (attr.get("src") or "").startswith("http://"):
+            src = (attr.get("src") or "").lower()
+            if any(m in src for m in ("recaptcha", "hcaptcha", "turnstile")):
+                self.form_has_captcha = True
+            if src.startswith("http://"):
                 self.mixed_content_count += 1
         elif tag == "meta":
             name = (attr.get("name") or attr.get("property") or "").lower()
@@ -252,12 +320,37 @@ class PageParser(HTMLParser):
             })
             if self._current_href.startswith("#") and "skip" in anchor_text.lower():
                 self.has_skip_link = True
+            if self._current_href.lower().startswith("tel:"):
+                self.tel_links += 1
             if not anchor_text and not self._link_aria and not self._link_img_alt:
                 self.empty_links += 1
             if anchor_text.lower() in GENERIC_ANCHOR_TEXTS:
                 self.generic_link_texts += 1
+            lowered = anchor_text.lower()
+            if any(p in lowered for p in CTA_PHRASES):
+                self.cta_count += 1
+                self.cta_texts.append(anchor_text[:60])
+                self._cta_positions.append(self._element_index)
+                if len(self.cta_texts) == 1 and lowered in GENERIC_CTA_TEXTS:
+                    self.primary_cta_generic = True
             self._current_href = None
             self._current_anchor = []
+        elif tag == "form":
+            self._form_depth = max(0, self._form_depth - 1)
+            self.form_fields_max = max(self.form_fields_max, self._form_fields)
+            self._form_fields = 0
+        elif tag == "button" and self._in_button:
+            button_text = " ".join(" ".join(self._button_text).split())
+            if not button_text and not self._button_aria and not self._button_img_alt:
+                self.empty_buttons += 1
+            lowered_b = button_text.lower()
+            if any(p in lowered_b for p in CTA_PHRASES):
+                self.cta_count += 1
+                self.cta_texts.append(button_text[:60])
+                self._cta_positions.append(self._element_index)
+                if len(self.cta_texts) == 1 and lowered_b in GENERIC_CTA_TEXTS:
+                    self.primary_cta_generic = True
+            self._in_button = False
         elif tag == "button" and self._in_button:
             button_text = " ".join(" ".join(self._button_text).split())
             if not button_text and not self._button_aria and not self._button_img_alt:
@@ -292,6 +385,7 @@ class PageParser(HTMLParser):
                     t.strip().strip('"') for t in match[1].split(","))
 
     def handle_data(self, data: str) -> None:
+        self._doc_position += len(data)
         if self._in_title:
             self.title += data
         if self._in_h1:
@@ -321,6 +415,23 @@ class PageParser(HTMLParser):
         self.text_sample = text[:5000]
         numbers = len(re.findall(r"\b[\d][\d.,]*%?\b", text))
         self.number_density = round(1000 * numbers / max(self.word_count, 1), 1)
+        # CRO: above-fold CTAs (first ~40% of BODY elements — the fold
+        # proxy, measured from <body> so head markup doesn't skew it)
+        body_start = self._body_index
+        body_span = max(self._element_index - body_start, 1)
+        self.cta_above_fold = sum(
+            1 for pos in self._cta_positions
+            if (pos - body_start) / body_span < 0.40)
+        lowered_text = text.lower()
+        self.trust_signal_count = sum(lowered_text.count(k)
+                                      for k in TRUST_KEYWORDS)
+        self.urgency_signal_count = sum(lowered_text.count(k)
+                                        for k in URGENCY_KEYWORDS)
+        self.faq_present = ("faqpage" in [t.lower() for t in self.schema_types]
+                            or any("faq" in h.lower() or "frequently asked" in h.lower()
+                                   for h in self.h2))
+        self.live_chat = (self.live_chat
+                          or any(m in lowered_text for m in LIVE_CHAT_MARKERS))
         # resolve pending form inputs now that all <label for> targets are known
         for field in self._pending_inputs:
             labelled = (field["aria"] or field["labelledby"] or field["title"]
@@ -427,6 +538,18 @@ def _record_from_parser(url: str, status: int, parser: PageParser,
         "iframes_total": parser.iframes_total,
         "iframes_missing_title": parser.iframes_missing_title,
         "positive_tabindex": parser.positive_tabindex,
+        "cta_count": parser.cta_count,
+        "cta_above_fold": parser.cta_above_fold,
+        "cta_texts": parser.cta_texts,
+        "primary_cta_generic": parser.primary_cta_generic,
+        "form_count": parser.form_count,
+        "form_fields_max": parser.form_fields_max,
+        "form_has_captcha": parser.form_has_captcha,
+        "tel_links": parser.tel_links,
+        "trust_signal_count": parser.trust_signal_count,
+        "urgency_signal_count": parser.urgency_signal_count,
+        "faq_present": parser.faq_present,
+        "live_chat": parser.live_chat,
         "security_hsts": "strict-transport-security" in headers,
         "security_csp": "content-security-policy" in headers,
         "security_xfo": "x-frame-options" in headers,

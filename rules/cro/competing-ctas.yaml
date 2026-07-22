@@ -1,0 +1,20 @@
+id: competing-ctas
+category: cro
+severity: medium
+confidence: medium
+detect:
+  field: cta_count
+  condition: gte
+  value: 7
+why: >
+  Seven or more calls-to-action compete for the same click. Choice
+  paralysis is real: pages with one dominant action out-convert pages
+  offering a menu of equally-weighted options.
+fix:
+  guidance: >
+    Pick ONE primary action per page and make it visually dominant
+    (button style, colour, placement). Demote everything else to text
+    links or secondary buttons.
+test:
+  expect_fail: {cta_count: 9}
+  expect_pass: {cta_count: 3}

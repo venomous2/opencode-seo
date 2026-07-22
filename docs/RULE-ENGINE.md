@@ -75,6 +75,10 @@ Produced by the crawler/lint parser (`site_crawler.PageParser`):
 | `has_skip_link`, `has_main`, `has_nav` | bool | accessibility landmarks |
 | `heading_skips`, `duplicate_ids`, `empty_links`, `empty_buttons`, `generic_link_texts` | int | accessibility structure checks |
 | `tables_without_th`, `iframes_missing_title`, `positive_tabindex` | int | accessibility element checks |
+| `cta_count`, `cta_above_fold`, `cta_texts`, `primary_cta_generic` | int/int/list/bool | CTA detection (fold = first 40% of body elements) |
+| `form_count`, `form_fields_max`, `form_has_captcha` | int/int/bool | form friction |
+| `tel_links`, `trust_signal_count`, `urgency_signal_count` | int | CRO signals |
+| `faq_present`, `live_chat` | bool | objection handling / support signals |
 
 Rules may also carry `wcag` and `wcag_level` fields (accessibility
 category), which are passed through into lint findings for WCAG mapping.

@@ -112,6 +112,8 @@ ZERO_MEANS_ABSENT = {
     "h1_count", "h2_count", "word_count", "images_total",
     "images_missing_alt", "schema_blocks", "internal_link_count",
     "external_link_count", "first_h2_para_words",
+    "cta_count", "cta_above_fold", "tel_links", "trust_signal_count",
+    "urgency_signal_count",
 }
 
 

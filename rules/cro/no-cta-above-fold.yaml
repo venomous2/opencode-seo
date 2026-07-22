@@ -1,0 +1,19 @@
+id: no-cta-above-fold
+category: cro
+severity: high
+confidence: medium
+detect:
+  field: cta_above_fold
+  condition: empty
+why: >
+  Visitors decide within seconds whether to act. If the first call-to-action
+  only appears below the fold, a large share of ready-to-convert visitors
+  never scroll far enough to see it.
+fix:
+  guidance: >
+    Put the primary CTA in the hero area — visible without scrolling on
+    desktop and mobile. Keep later CTAs as reinforcement, not the only
+    chance to act.
+test:
+  expect_fail: {cta_above_fold: 0}
+  expect_pass: {cta_above_fold: 1}

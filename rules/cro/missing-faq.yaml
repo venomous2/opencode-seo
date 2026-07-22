@@ -1,0 +1,19 @@
+id: missing-faq
+category: cro
+severity: low
+confidence: medium
+detect:
+  field: faq_present
+  condition: is_false
+why: >
+  No FAQ content was detected. FAQs are where objections get answered —
+  price, risk, process, guarantees. Visitors with unanswered objections
+  leave to find answers elsewhere, usually a competitor's page.
+fix:
+  guidance: >
+    Add a short FAQ near the decision point answering the 5-8 real
+    objections buyers raise (mine them from sales calls, reviews, and
+    People Also Ask data). Also feeds FAQPage schema for search.
+test:
+  expect_fail: {faq_present: false}
+  expect_pass: {faq_present: true}

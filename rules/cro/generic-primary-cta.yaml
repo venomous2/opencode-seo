@@ -1,0 +1,18 @@
+id: generic-primary-cta
+category: cro
+severity: medium
+confidence: high
+detect:
+  field: primary_cta_generic
+  condition: is_true
+why: >
+  "Submit", "Go", and "Send" tell the visitor nothing about what they get.
+  Value-driven button text ("Get my quote", "Book my consultation")
+  consistently out-converts generic labels because it states the payoff.
+fix:
+  guidance: >
+    Rewrite the primary CTA to complete the sentence "I want to ___" from
+    the visitor's perspective: "Get my free quote", not "Submit".
+test:
+  expect_fail: {primary_cta_generic: true}
+  expect_pass: {primary_cta_generic: false}

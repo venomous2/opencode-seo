@@ -1,0 +1,20 @@
+id: high-form-friction
+category: cro
+severity: high
+confidence: high
+detect:
+  field: form_fields_max
+  condition: gte
+  value: 6
+why: >
+  Forms with six or more visible fields measurably suppress completion.
+  Every additional field is a reason to abandon — especially on mobile
+  and for first-touch leads who haven't decided they want to talk to you yet.
+fix:
+  guidance: >
+    Cut to the essentials (name, email, one qualifier). Move the rest to
+    step two or after the first conversation. If every field is truly
+    needed, split into a multi-step form with a progress indicator.
+test:
+  expect_fail: {form_fields_max: 8}
+  expect_pass: {form_fields_max: 3}

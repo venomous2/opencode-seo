@@ -3,6 +3,27 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.13.0] - 2026-07-23
+
+Conversion rate optimisation.
+
+### Added
+- **CRO category in the rule engine** — 10 rules (53 total) measuring what
+  prompt-only CRO checklists can't: no CTA, no above-fold CTA (body-relative
+  fold proxy), generic primary CTA text, missing trust signals, high form
+  friction, CAPTCHA presence, missing phone link, no urgency signal,
+  competing CTAs, missing FAQ
+- **`cro-audit` skill + `/cro` command** (86 skills, 10 commands) — the
+  deterministic baseline plus what competitors lack: SERP intent-goal
+  alignment (does the offer match what the searcher came for?), competitor
+  benchmarking with the same measured checks, objection mining from PAA and
+  competitor FAQs, ICE-scored hypothesis experiment plans with measurement
+  notes, and data-grounded copy alternatives
+- Parser now detects: CTA presence/position/text (anchors + buttons),
+  form field counts and CAPTCHA, tel: links, trust and urgency keyword
+  signals, FAQ presence, live-chat widgets
+- 8 new tests (136 total)
+
 ## [0.12.0] - 2026-07-22
 
 Web accessibility auditing.

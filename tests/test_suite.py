@@ -162,16 +162,22 @@ class TestSeoLint:
                 + '{"@context":"https://schema.org","@type":"Organization"}'
                 + "</script></head><body>"
                 + '<a href="#main">Skip to content</a><nav>menu</nav><main>'
-                + "<h1>Topic</h1><h2>Section</h2><p>"
-                + " ".join(["word"] * 350)
-                + '</p><img src="a.jpg" alt="descriptive">'
+                + "<h1>Topic</h1><h2>Section</h2>"
+                + '<a href="/quote">Get a quote</a>'
+                + "<p>Rated 5 stars by 2,000 happy customers across the UK. "
+                + "Every job comes with a full money-back guarantee, so you "
+                + "can book with complete confidence today.</p>"
+                + "<p>" + " ".join(["word"] * 350) + "</p>"
+                + '<img src="a.jpg" alt="descriptive">'
                 + '<a href="/one">1</a><a href="/two">2</a>'
                 + '<a href="/three">3</a>'
                 + '<a href="https://source.example/study">source</a>'
+                + '<a href="tel:+442012345678">020 1234 5678</a>'
+                + "<h2>Frequently asked questions</h2><p>Answers.</p>"
                 + "</main></body></html>")
         page = seo_lint.parse_html(good, "https://x.com/p")
         rules = rule_engine.load_rules()
-        results = seo_lint.lint_pages([page], rules, None)
+        results = seo_lint.lint_pages([page], rules, None, local=True)
         assert results[0]["score"] >= 90
 
 class TestSchemaGen:
@@ -1162,3 +1168,58 @@ class TestAccessibilityParsing:
                        if f["id"] == "form-input-unlabelled")
         assert finding["wcag"] == "1.3.1 + 4.1.2"
         assert finding["wcag_level"] == "A"
+
+
+# ---------------------------------------------------------------------------
+# CRO signal parsing
+# ---------------------------------------------------------------------------
+
+class TestCroParsing:
+    def _page(self, html):
+        return seo_lint.parse_html(html, "https://x.com")
+
+    def test_cta_detection_anchor_and_button(self):
+        page = self._page('<a href="/quote">Get a quote</a>'
+                          '<button>Buy now</button>'
+                          '<a href="/about">About us</a>')
+        assert page["cta_count"] == 2
+        assert "Get a quote" in page["cta_texts"]
+        assert "Buy now" in page["cta_texts"]
+
+    def test_cta_above_fold_position(self):
+        early = self._page('<a href="/q">Get started</a>' + "<p>x</p>" * 40)
+        assert early["cta_above_fold"] == 1
+        late = self._page("<p>x</p>" * 40 + '<a href="/q">Get started</a>')
+        assert late["cta_above_fold"] == 0
+
+    def test_generic_primary_cta(self):
+        page = self._page('<form><button>Submit</button></form>')
+        assert page["primary_cta_generic"] is True
+        page2 = self._page('<form><button>Get my quote</button></form>')
+        assert page2["primary_cta_generic"] is False
+
+    def test_form_friction_and_captcha(self):
+        page = self._page('<form>' + "<input>" * 7 + '</form>'
+                          '<script src="https://google.com/recaptcha/api.js"></script>')
+        assert page["form_fields_max"] == 7
+        assert page["form_has_captcha"] is True
+
+    def test_tel_links(self):
+        page = self._page('<a href="tel:+442071234567">Call us</a>')
+        assert page["tel_links"] == 1
+
+    def test_trust_and_urgency_counts(self):
+        page = self._page('<p>Rated 5 stars, money-back guarantee, '
+                          'trusted by 2,000 customers. Sale ends soon.</p>')
+        assert page["trust_signal_count"] >= 3
+        assert page["urgency_signal_count"] >= 1
+
+    def test_faq_detection(self):
+        by_heading = self._page('<h2>Frequently asked questions</h2><p>x</p>')
+        assert by_heading["faq_present"] is True
+        none_page = self._page('<h2>Our services</h2><p>x</p>')
+        assert none_page["faq_present"] is False
+
+    def test_live_chat_marker(self):
+        page = self._page('<p>Chat with us</p><div id="intercom-container"></div>')
+        assert page["live_chat"] is True

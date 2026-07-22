@@ -1,0 +1,19 @@
+id: no-cta
+category: cro
+severity: critical
+confidence: high
+detect:
+  field: cta_count
+  condition: empty
+why: >
+  A page with no call-to-action gives visitors nothing to do next. Traffic
+  without a conversion path is just readership — it cannot produce leads,
+  sales, or signups no matter how good the content is.
+fix:
+  guidance: >
+    Add one clear primary CTA matched to the page's goal: "Get a quote",
+    "Book a demo", "Start free trial". Place it where intent peaks —
+    above the fold and again at the end of the page.
+test:
+  expect_fail: {cta_count: 0}
+  expect_pass: {cta_count: 2}

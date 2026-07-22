@@ -1,0 +1,19 @@
+id: missing-contact-option
+category: cro
+severity: low
+confidence: medium
+detect:
+  field: tel_links
+  condition: empty
+why: >
+  No clickable phone link was found. For local and service businesses, a
+  share of visitors — especially on mobile — prefer to call rather than
+  fill a form. No tap-to-call means losing the highest-intent segment.
+fix:
+  guidance: >
+    Add a tel: link in the header and near the primary CTA:
+    <a href="tel:+442012345678">020 1234 5678</a>. Mobile devices make
+    it one tap to a call.
+test:
+  expect_fail: {tel_links: 0}
+  expect_pass: {tel_links: 1}

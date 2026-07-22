@@ -1,0 +1,19 @@
+id: no-urgency-signal
+category: cro
+severity: low
+confidence: low
+detect:
+  field: urgency_signal_count
+  condition: empty
+why: >
+  No offer, deadline, or reason-to-act-now was detected. Without a reason
+  to act today, interested visitors defer — and deferred intent rarely
+  returns. (Honest note: only genuine urgency. Fake countdowns destroy trust.)
+fix:
+  guidance: >
+    If you have a genuine offer, make it visible with its honest deadline.
+    If you don't, create one that is real: seasonal pricing, limited
+    capacity, early-bird terms. Never fake urgency — repeat visitors notice.
+test:
+  expect_fail: {urgency_signal_count: 0}
+  expect_pass: {urgency_signal_count: 2}

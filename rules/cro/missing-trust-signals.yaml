@@ -1,0 +1,19 @@
+id: missing-trust-signals
+category: cro
+severity: high
+confidence: medium
+detect:
+  field: trust_signal_count
+  condition: empty
+why: >
+  No reviews, ratings, guarantees, testimonials, or credibility markers
+  were detected. Visitors ask "why should I trust you?" before they
+  convert — pages that don't answer it lose ready buyers at the last step.
+fix:
+  guidance: >
+    Add concrete proof near the CTA: review counts and ratings, named
+    testimonials, a money-back guarantee, client logos, accreditations.
+    Specifics beat adjectives: "4.9 from 1,137 reviews" not "trusted by many".
+test:
+  expect_fail: {trust_signal_count: 0}
+  expect_pass: {trust_signal_count: 3}

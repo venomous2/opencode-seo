@@ -1,0 +1,19 @@
+id: form-has-captcha
+category: cro
+severity: low
+confidence: high
+detect:
+  field: form_has_captcha
+  condition: is_true
+why: >
+  CAPTCHAs cost conversions — they add friction at the exact moment of
+  highest intent, and they fail users on assistive tech and mobile. Spam
+  protection may be necessary, but it should be invisible where possible.
+fix:
+  guidance: >
+    Prefer invisible spam control (reCAPTCHA v3 scores silently in the
+    background, honeypot fields) over puzzle-style challenges. If you must
+    keep a visible CAPTCHA, test its impact on completion rate.
+test:
+  expect_fail: {form_has_captcha: true}
+  expect_pass: {form_has_captcha: false}
