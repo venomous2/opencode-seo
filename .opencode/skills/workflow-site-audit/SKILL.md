@@ -20,6 +20,12 @@ live pulls in parallel where possible, then synthesizes.
 2. Load project memory if present: `python scripts/project_memory.py`.
 3. Fetch the homepage HTML (webfetch) to detect industry, CMS, and rendering
    (check for empty `<div id="root">` SPA shells).
+4. **Discover the real page set first**: fetch /sitemap.xml (or run
+   `python scripts/site_crawler.py --url <site> --max-pages 30`) and build
+   the audit's page list from it. NEVER audit guessed URLs — a 404 on an
+   invented path is not evidence, and unchecked pages are not missing pages.
+   If a data pull errors or returns the wrong market, mark that section
+   "data unavailable" instead of drawing conclusions from it.
 
 ## Phase 1 — Live data pulls (run in parallel bash calls)
 

@@ -265,8 +265,7 @@ def build_payload(command: str, args: argparse.Namespace) -> list[dict[str, Any]
                  "order_by": ["backlinks,desc"]}]
     if command == "onpage":
         return [{"url": args.url, "enable_javascript": True,
-                 "load_resources": True,
-                 "checks_threshold": {"canonical": 1}}]
+                 "load_resources": True}]
     if command == "lighthouse":
         return [{"url": args.url, "for_mobile": args.device != "desktop",
                  "location_name": loc, "language_name": lang}]

@@ -18,6 +18,17 @@ microdata, and RDFa. Findings cite the exact block and property.
 
 Fetch the page HTML with the webfetch tool, then extract:
 
+Rules before you conclude anything:
+- **Verify the URL exists first** (status 200). A 404 on a guessed path is
+  not evidence of missing schema — confirm the real page URL from the
+  site's sitemap.xml or navigation before auditing it.
+- **Raw HTML may not be the whole story.** If no JSON-LD is visible in the
+  raw fetch, check whether the site injects it via JavaScript before
+  reporting "no schema": verify with
+  `python scripts/dfs_client.py onpage --url <url>` (JS rendering enabled)
+  or ask the user to confirm how their schema is deployed. Report what you
+  verified, and how — never "no schema" from a single raw fetch.
+
 - All `<script type="application/ld+json">` blocks (there may be several)
 - Microdata (`itemscope`/`itemtype`/`itemprop`) and RDFa attributes
 - The rendered DOM is not needed — validate what is served in the HTML,

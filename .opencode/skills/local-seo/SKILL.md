@@ -18,14 +18,35 @@ data — never assumes rankings from a single location.
 ## Data pulls
 
 ```
-python scripts/dfs_client.py business --keyword "<business name + city>"
-python scripts/dfs_client.py serp     --keyword "<target keyword>" --location "<city>" --limit 20
-python scripts/dfs_client.py serp     --keyword "<target keyword> <city>" --limit 20
-python scripts/dfs_client.py ranked   --target "<domain>" --limit 100   # if domain given
+python scripts/dfs_client.py serp-maps --keyword "<target keyword>" --location "<City,England,United Kingdom>" --limit 20
+python scripts/dfs_client.py business  --keyword "<business name + city>"
+python scripts/dfs_client.py serp      --keyword "<target keyword>" --location "<City,England,United Kingdom>" --limit 20
+python scripts/dfs_client.py ranked    --target "<domain>" --limit 100   # if domain given
 ```
 
-Run SERP pulls with an explicit `--location` — local results are
-geo-sensitive. If credentials are missing, stop and point the user to
+**Methodology rules (hard requirements — a wrong-URL or wrong-market audit
+is worse than no audit):**
+
+1. **Maps first for local-pack truth.** Local pack visibility is checked
+   with `serp-maps` at CITY level (e.g. "Manchester,England,United Kingdom"),
+   never inferred from an organic SERP. Organic `serp` with the same city
+   location is run alongside for organic positions.
+2. **Discover pages from the sitemap before checking anything.** Fetch
+   /sitemap.xml (or run `site_crawler.py --max-pages 30`) and choose real
+   location/landing URLs from it. NEVER audit a guessed URL — a 404 on an
+   invented path is not evidence of a missing page, and a page you didn't
+   check is not a page that doesn't exist.
+3. **Schema verdicts from the real page's raw HTML.** Before claiming
+   "no schema", fetch the actual location page from the sitemap and check
+   for `application/ld+json` blocks (our parser reads them). If content is
+   JS-injected, verify with `dfs_client.py onpage --url <real-url>` (JS
+   rendering enabled). One page's lack of schema ≠ "no schema anywhere".
+4. **Bad data = unavailable, not a conclusion.** If a pull errors or
+   returns the wrong market (e.g. US results for a UK query), mark that
+   section "data unavailable" and say why. Never draw conclusions from
+   data you already know is wrong.
+
+If credentials are missing, stop and point the user to
 docs/DATAFORSEO-SETUP.md. Do not invent numbers.
 
 ## Process
