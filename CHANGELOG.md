@@ -3,6 +3,28 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.12.0] - 2026-07-22
+
+Web accessibility auditing.
+
+### Added
+- **Accessibility category in the rule engine** — 12 new WCAG-cited rules
+  (43 total): unlabelled form inputs, missing skip link, missing main/nav
+  landmarks, heading-order skips, duplicate ids, empty links, empty
+  buttons, generic link text, tables without headers, iframes without
+  titles, positive tabindex. Each rule carries its WCAG criterion and
+  conformance level (A/AA/AAA), passed through to lint findings
+- **`accessibility-audit` skill** (85 skills total) — WCAG mapping table,
+  pass-rate scorecard per level, prioritised fixes, and an explicit
+  honesty split between machine-checked criteria and what needs manual
+  testing (contrast, keyboard, screen reader, motion) with a manual-test
+  checklist
+- Parser now extracts: form label associations (label for / wrapped /
+  aria-label — placeholders correctly do NOT count), skip links, landmarks,
+  heading sequence, duplicate ids, empty links/buttons, generic anchor
+  text, table headers, iframe titles, tabindex usage
+- 13 new tests (128 total)
+
 ## [0.11.1] - 2026-07-22
 
 ### Added

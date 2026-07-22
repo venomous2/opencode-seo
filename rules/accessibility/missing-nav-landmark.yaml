@@ -1,0 +1,21 @@
+id: missing-nav-landmark
+category: accessibility
+severity: low
+confidence: medium
+wcag: "1.3.1"
+wcag_level: "A"
+detect:
+  field: has_nav
+  condition: is_false
+why: >
+  A nav landmark lets assistive-technology users jump straight to — or
+  straight past — the primary navigation. WCAG 1.3.1 expects page
+  regions to be identified programmatically.
+fix:
+  guidance: >
+    Wrap the main menu in a <nav> element (or role="navigation"), for
+    example <nav aria-label="Primary">. Where more than one nav exists,
+    give each an aria-label so users can tell them apart.
+test:
+  expect_fail: {has_nav: false}
+  expect_pass: {has_nav: true}

@@ -1,0 +1,23 @@
+id: generic-link-text
+category: accessibility
+severity: low
+confidence: medium
+wcag: "2.4.4"
+wcag_level: "AAA"
+detect:
+  field: generic_link_texts
+  condition: gte
+  value: 1
+why: >
+  Phrases like "click here" and "read more" are meaningless in the link
+  lists screen readers offer, where surrounding context is stripped
+  away. WCAG 2.4.4 expects each link's purpose to be clear from its
+  text.
+fix:
+  guidance: >
+    Write link text that describes the destination — "Download the 2026
+    price list" rather than "click here". If layout forces a short
+    label, add the missing context with an aria-label or adjacent text.
+test:
+  expect_fail: {generic_link_texts: 3}
+  expect_pass: {generic_link_texts: 0}

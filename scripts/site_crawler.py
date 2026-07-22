@@ -35,6 +35,11 @@ from typing import Any
 
 USER_AGENT = "OpenCodeSEOSuite-Crawler/2.0 (+https://opencode.ai)"
 
+GENERIC_ANCHOR_TEXTS = {
+    "click here", "here", "read more", "more", "learn more", "link",
+    "this", "this page", "find out more", "see more", "view more",
+}
+
 FetchResult = namedtuple("FetchResult", ["status", "content_type", "body", "headers"])
 
 
@@ -73,6 +78,33 @@ class PageParser(HTMLParser):
         self.og_image = ""
         self.twitter_card = ""
         self.mixed_content_count = 0
+        # --- accessibility fields ---
+        self.form_inputs_unlabelled = 0
+        self.has_skip_link = False
+        self.has_main = False
+        self.has_nav = False
+        self.heading_skips = 0
+        self.duplicate_ids = 0
+        self.empty_links = 0
+        self.empty_buttons = 0
+        self.generic_link_texts = 0
+        self.tables_total = 0
+        self.tables_without_th = 0
+        self.iframes_total = 0
+        self.iframes_missing_title = 0
+        self.positive_tabindex = 0
+        self._label_targets: set[str] = set()
+        self._label_depth = 0
+        self._pending_inputs: list[dict[str, Any]] = []
+        self._ids: list[str] = []
+        self._last_heading_level = 0
+        self._link_aria = False
+        self._link_img_alt = False
+        self._table_has_th = False
+        self._in_button = False
+        self._button_text: list[str] = []
+        self._button_aria = False
+        self._button_img_alt = False
         self._in_title = False
         self._in_h1 = False
         self._in_h2 = False
@@ -89,22 +121,47 @@ class PageParser(HTMLParser):
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         attr = dict(attrs)
+        if attr.get("id"):
+            self._ids.append(attr["id"])
+        tabindex = attr.get("tabindex") or ""
+        if tabindex.lstrip("-").isdigit() and int(tabindex) > 0:
+            self.positive_tabindex += 1
         if tag == "html" and attr.get("lang"):
             self.html_lang = attr["lang"].strip()
         if tag == "title":
             self._in_title = True
-        elif tag == "h1":
-            self._in_h1 = True
-        elif tag == "h2":
-            self._in_h2 = True
-            self._seen_h2 = True
-            self.h2_count += 1
+        elif tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
+            level = int(tag[1])
+            if self._last_heading_level and level > self._last_heading_level + 1:
+                self.heading_skips += 1
+            self._last_heading_level = level
+            if tag == "h1":
+                self._in_h1 = True
+            elif tag == "h2":
+                self._in_h2 = True
+                self._seen_h2 = True
+                self.h2_count += 1
         elif tag in ("ul", "ol"):
             self.list_count += 1
         elif tag == "time":
             self.time_elements += 1
         elif tag == "p" and self._seen_h2 and not self._para_done:
             self._capture_para = True
+        elif tag == "label":
+            self._label_depth += 1
+            if attr.get("for"):
+                self._label_targets.add(attr["for"].strip())
+        elif tag in ("input", "select", "textarea"):
+            input_type = (attr.get("type") or "text").lower()
+            if tag != "input" or input_type not in (
+                    "hidden", "submit", "button", "reset"):
+                self._pending_inputs.append({
+                    "aria": (attr.get("aria-label") or "").strip(),
+                    "labelledby": (attr.get("aria-labelledby") or "").strip(),
+                    "title": (attr.get("title") or "").strip(),
+                    "id": (attr.get("id") or "").strip(),
+                    "wrapped": self._label_depth > 0,
+                })
         elif tag in ("script", "style", "noscript"):
             self._skip_depth += 1
             if tag == "script" and (attr.get("type") or "").lower() == "application/ld+json":
@@ -139,16 +196,41 @@ class PageParser(HTMLParser):
                 self.has_rel_author = True
             if (attr.get("href") or "").startswith("http://"):
                 self.mixed_content_count += 1
+        elif tag in ("main",) or (attr.get("role") or "").lower() == "main":
+            self.has_main = True
+        elif tag in ("nav",) or (attr.get("role") or "").lower() == "navigation":
+            self.has_nav = True
         elif tag == "a":
             if attr.get("href"):
                 self._current_href = attr["href"]
                 self._current_anchor = []
+                self._link_aria = bool((attr.get("aria-label") or "").strip())
+                self._link_img_alt = False
             if "author" in (attr.get("rel") or "").lower():
                 self.has_rel_author = True
+        elif tag == "button":
+            self._in_button = True
+            self._button_text = []
+            self._button_aria = bool((attr.get("aria-label") or "").strip())
+            self._button_img_alt = False
+        elif tag == "table":
+            self.tables_total += 1
+            self._table_has_th = False
+        elif tag == "th":
+            self._table_has_th = True
+        elif tag == "iframe":
+            self.iframes_total += 1
+            if not (attr.get("title") or "").strip():
+                self.iframes_missing_title += 1
         elif tag == "img":
             self.images_total += 1
-            if not (attr.get("alt") or "").strip():
+            has_alt = bool((attr.get("alt") or "").strip())
+            if not has_alt:
                 self.images_missing_alt += 1
+            if self._current_href is not None and has_alt:
+                self._link_img_alt = True
+            if self._in_button and has_alt:
+                self._button_img_alt = True
             if (attr.get("src") or "").startswith("http://"):
                 self.mixed_content_count += 1
 
@@ -163,12 +245,29 @@ class PageParser(HTMLParser):
             self._capture_para = False
             self._para_done = True
         elif tag == "a" and self._current_href is not None:
+            anchor_text = " ".join(" ".join(self._current_anchor).split())
             self.links.append({
                 "href": self._current_href,
-                "anchor": " ".join(" ".join(self._current_anchor).split()),
+                "anchor": anchor_text,
             })
+            if self._current_href.startswith("#") and "skip" in anchor_text.lower():
+                self.has_skip_link = True
+            if not anchor_text and not self._link_aria and not self._link_img_alt:
+                self.empty_links += 1
+            if anchor_text.lower() in GENERIC_ANCHOR_TEXTS:
+                self.generic_link_texts += 1
             self._current_href = None
             self._current_anchor = []
+        elif tag == "button" and self._in_button:
+            button_text = " ".join(" ".join(self._button_text).split())
+            if not button_text and not self._button_aria and not self._button_img_alt:
+                self.empty_buttons += 1
+            self._in_button = False
+        elif tag == "label":
+            self._label_depth = max(0, self._label_depth - 1)
+        elif tag == "table":
+            if not self._table_has_th:
+                self.tables_without_th += 1
         elif tag in ("script", "style", "noscript") and self._skip_depth:
             self._skip_depth -= 1
             if tag == "script" and self._in_jsonld:
@@ -203,6 +302,8 @@ class PageParser(HTMLParser):
             self._jsonld_parts.append(data)
         if self._current_href is not None and self._skip_depth == 0:
             self._current_anchor.append(data)
+        if self._in_button and self._skip_depth == 0:
+            self._button_text.append(data)
         if self._capture_para:
             self._para_parts.append(data)
         if self._skip_depth == 0:
@@ -220,6 +321,18 @@ class PageParser(HTMLParser):
         self.text_sample = text[:5000]
         numbers = len(re.findall(r"\b[\d][\d.,]*%?\b", text))
         self.number_density = round(1000 * numbers / max(self.word_count, 1), 1)
+        # resolve pending form inputs now that all <label for> targets are known
+        for field in self._pending_inputs:
+            labelled = (field["aria"] or field["labelledby"] or field["title"]
+                        or field["wrapped"]
+                        or (field["id"] and field["id"] in self._label_targets))
+            if not labelled:
+                self.form_inputs_unlabelled += 1
+        seen: set[str] = set()
+        for element_id in self._ids:
+            if element_id in seen:
+                self.duplicate_ids += 1
+            seen.add(element_id)
 
 
 # ---------------------------------------------------------------------------
@@ -300,6 +413,20 @@ def _record_from_parser(url: str, status: int, parser: PageParser,
         "og_image": parser.og_image,
         "twitter_card": parser.twitter_card,
         "mixed_content_count": parser.mixed_content_count,
+        "form_inputs_unlabelled": parser.form_inputs_unlabelled,
+        "has_skip_link": parser.has_skip_link,
+        "has_main": parser.has_main,
+        "has_nav": parser.has_nav,
+        "heading_skips": parser.heading_skips,
+        "duplicate_ids": parser.duplicate_ids,
+        "empty_links": parser.empty_links,
+        "empty_buttons": parser.empty_buttons,
+        "generic_link_texts": parser.generic_link_texts,
+        "tables_total": parser.tables_total,
+        "tables_without_th": parser.tables_without_th,
+        "iframes_total": parser.iframes_total,
+        "iframes_missing_title": parser.iframes_missing_title,
+        "positive_tabindex": parser.positive_tabindex,
         "security_hsts": "strict-transport-security" in headers,
         "security_csp": "content-security-policy" in headers,
         "security_xfo": "x-frame-options" in headers,

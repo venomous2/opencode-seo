@@ -1,0 +1,23 @@
+id: empty-button
+category: accessibility
+severity: high
+confidence: high
+wcag: "4.1.2"
+wcag_level: "A"
+detect:
+  field: empty_buttons
+  condition: gte
+  value: 1
+why: >
+  An icon-only button with no accessible name cannot be used
+  non-visually — the screen reader announces only "button". WCAG 4.1.2
+  requires every control to expose its name and role to assistive
+  technology.
+fix:
+  guidance: >
+    Add visible text or an aria-label to every <button>, for example
+    <button aria-label="Close dialog">×</button>. Make sure the name
+    describes the action, not the icon.
+test:
+  expect_fail: {empty_buttons: 1}
+  expect_pass: {empty_buttons: 0}

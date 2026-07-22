@@ -71,6 +71,13 @@ Produced by the crawler/lint parser (`site_crawler.PageParser`):
 | `twitter_card` | str | twitter:card meta |
 | `mixed_content_count` | int | HTTP resources on the page |
 | `security_hsts`, `security_csp`, `security_xfo`, `security_xcto` | bool | response headers (skipped for local files) |
+| `form_inputs_unlabelled` | int | inputs without label/aria-label/title (placeholders don't count) |
+| `has_skip_link`, `has_main`, `has_nav` | bool | accessibility landmarks |
+| `heading_skips`, `duplicate_ids`, `empty_links`, `empty_buttons`, `generic_link_texts` | int | accessibility structure checks |
+| `tables_without_th`, `iframes_missing_title`, `positive_tabindex` | int | accessibility element checks |
+
+Rules may also carry `wcag` and `wcag_level` fields (accessibility
+category), which are passed through into lint findings for WCAG mapping.
 | `h2`, `list_count`, `time_elements`, `jsonld_has_dates`, `meta_author`, `has_rel_author`, `number_density` | — | citation-scorer signals |
 
 The crawler also performs site-level analyses in its summary output:

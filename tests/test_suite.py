@@ -161,13 +161,14 @@ class TestSeoLint:
                 + '</script><script type="application/ld+json">'
                 + '{"@context":"https://schema.org","@type":"Organization"}'
                 + "</script></head><body>"
+                + '<a href="#main">Skip to content</a><nav>menu</nav><main>'
                 + "<h1>Topic</h1><h2>Section</h2><p>"
                 + " ".join(["word"] * 350)
                 + '</p><img src="a.jpg" alt="descriptive">'
                 + '<a href="/one">1</a><a href="/two">2</a>'
                 + '<a href="/three">3</a>'
                 + '<a href="https://source.example/study">source</a>'
-                + "</body></html>")
+                + "</main></body></html>")
         page = seo_lint.parse_html(good, "https://x.com/p")
         rules = rule_engine.load_rules()
         results = seo_lint.lint_pages([page], rules, None)
@@ -1085,3 +1086,79 @@ class TestSchemaFromMemory:
         monkeypatch.chdir(tmp_path)
         with pytest.raises(ValueError, match="No profile"):
             schema_gen.fields_from_memory("ghost", "organization")
+
+
+# ---------------------------------------------------------------------------
+# accessibility parsing
+# ---------------------------------------------------------------------------
+
+class TestAccessibilityParsing:
+    def _page(self, html):
+        return seo_lint.parse_html(html, "https://x.com")
+
+    def test_label_for_counts_as_labelled(self):
+        page = self._page('<input type="text" id="e"><label for="e">Email</label>')
+        assert page["form_inputs_unlabelled"] == 0
+
+    def test_wrapped_input_labelled(self):
+        page = self._page('<label>Email <input type="text"></label>')
+        assert page["form_inputs_unlabelled"] == 0
+
+    def test_aria_label_counts(self):
+        page = self._page('<input type="text" aria-label="Search">')
+        assert page["form_inputs_unlabelled"] == 0
+
+    def test_placeholder_is_not_a_label(self):
+        page = self._page('<input type="text" placeholder="Search">')
+        assert page["form_inputs_unlabelled"] == 1
+
+    def test_hidden_and_submit_ignored(self):
+        page = self._page('<input type="hidden" name="a"><input type="submit" value="Go">')
+        assert page["form_inputs_unlabelled"] == 0
+
+    def test_skip_link_detected(self):
+        page = self._page('<a href="#main">Skip to main content</a><main>x</main>')
+        assert page["has_skip_link"] is True
+        assert page["has_main"] is True
+
+    def test_heading_skip_detected(self):
+        page = self._page("<h1>A</h1><h3>B</h3>")
+        assert page["heading_skips"] == 1
+        page2 = self._page("<h1>A</h1><h2>B</h2><h3>C</h3>")
+        assert page2["heading_skips"] == 0
+
+    def test_duplicate_ids(self):
+        page = self._page('<div id="x"></div><span id="x"></span><p id="y"></p>')
+        assert page["duplicate_ids"] == 1
+
+    def test_empty_and_generic_links(self):
+        page = self._page('<a href="/a"></a><a href="/b">click here</a>'
+                          '<a href="/c">Our pricing</a>')
+        assert page["empty_links"] == 1
+        assert page["generic_link_texts"] == 1
+
+    def test_empty_button_and_aria_button(self):
+        page = self._page('<button></button><button aria-label="Close">×</button>')
+        assert page["empty_buttons"] == 1
+
+    def test_table_and_iframe(self):
+        page = self._page('<table><tr><td>1</td></tr></table>'
+                          '<table><tr><th>H</th></tr></table>'
+                          '<iframe src="https://x.com"></iframe>'
+                          '<iframe title="Map" src="https://y.com"></iframe>')
+        assert page["tables_without_th"] == 1
+        assert page["iframes_missing_title"] == 1
+
+    def test_positive_tabindex(self):
+        page = self._page('<a tabindex="2" href="/a">A</a><a tabindex="0" href="/b">B</a>')
+        assert page["positive_tabindex"] == 1
+
+    def test_wcag_passthrough_in_findings(self):
+        rules = rule_engine.load_rules()
+        a11y = [r for r in rules if r["category"] == "accessibility"]
+        page = self._page('<input type="text" placeholder="Search">')
+        outcome = rule_engine.run(page, a11y)
+        finding = next(f for f in outcome["findings"]
+                       if f["id"] == "form-input-unlabelled")
+        assert finding["wcag"] == "1.3.1 + 4.1.2"
+        assert finding["wcag_level"] == "A"

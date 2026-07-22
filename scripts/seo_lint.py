@@ -85,6 +85,20 @@ def parse_html(html_text: str, url: str = "") -> dict[str, Any]:
         "og_image": parser.og_image,
         "twitter_card": parser.twitter_card,
         "mixed_content_count": parser.mixed_content_count,
+        "form_inputs_unlabelled": parser.form_inputs_unlabelled,
+        "has_skip_link": parser.has_skip_link,
+        "has_main": parser.has_main,
+        "has_nav": parser.has_nav,
+        "heading_skips": parser.heading_skips,
+        "duplicate_ids": parser.duplicate_ids,
+        "empty_links": parser.empty_links,
+        "empty_buttons": parser.empty_buttons,
+        "generic_link_texts": parser.generic_link_texts,
+        "tables_total": parser.tables_total,
+        "tables_without_th": parser.tables_without_th,
+        "iframes_total": parser.iframes_total,
+        "iframes_missing_title": parser.iframes_missing_title,
+        "positive_tabindex": parser.positive_tabindex,
     }
 
 

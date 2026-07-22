@@ -190,6 +190,8 @@ def run(page: dict[str, Any], rules: list[dict[str, Any]]) -> dict[str, Any]:
             "category": rule["category"],
             "severity": rule["severity"],
             "confidence": rule.get("confidence", "medium"),
+            **({"wcag": rule["wcag"]} if rule.get("wcag") else {}),
+            **({"wcag_level": rule["wcag_level"]} if rule.get("wcag_level") else {}),
             "evidence": {
                 "field": detect["field"],
                 "condition": detect["condition"],

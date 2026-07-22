@@ -1,0 +1,24 @@
+id: form-input-unlabelled
+category: accessibility
+severity: high
+confidence: high
+wcag: "1.3.1 + 4.1.2"
+wcag_level: "A"
+detect:
+  field: form_inputs_unlabelled
+  condition: gte
+  value: 1
+why: >
+  A form field without a label gives screen-reader users nothing to
+  announce, so they cannot tell what information is being asked for.
+  WCAG 1.3.1 and 4.1.2 require every input to have a programmatically
+  associated name.
+fix:
+  guidance: >
+    Give every input a proper label: wrap it in a <label>, add a
+    <label for="email"> matching the input's id, or as a last resort an
+    aria-label="Email address". Placeholder text is not a label — it
+    disappears on typing and is not reliably announced.
+test:
+  expect_fail: {form_inputs_unlabelled: 2}
+  expect_pass: {form_inputs_unlabelled: 0}

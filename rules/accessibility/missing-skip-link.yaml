@@ -1,0 +1,22 @@
+id: missing-skip-link
+category: accessibility
+severity: medium
+confidence: medium
+wcag: "2.4.1"
+wcag_level: "A"
+detect:
+  field: has_skip_link
+  condition: is_false
+why: >
+  Keyboard and screen-reader users must otherwise tab through the whole
+  navigation on every page before reaching the content. WCAG 2.4.1
+  requires a way to bypass repeated blocks such as menus.
+fix:
+  guidance: >
+    Add a "Skip to main content" link as the first focusable element in
+    the <body>, pointing at the main landmark: <a href="#main"
+    class="skip-link">Skip to main content</a>, with id="main" on the
+    <main> element. It may be visually hidden until focused.
+test:
+  expect_fail: {has_skip_link: false}
+  expect_pass: {has_skip_link: true}

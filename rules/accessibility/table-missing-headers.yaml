@@ -1,0 +1,24 @@
+id: table-missing-headers
+category: accessibility
+severity: medium
+confidence: medium
+wcag: "1.3.1"
+wcag_level: "A"
+detect:
+  field: tables_without_th
+  condition: gte
+  value: 1
+why: >
+  Data tables without header cells cannot be navigated by screen
+  readers — there is nothing to announce against each value.
+  WCAG 1.3.1 requires the relationship between cells and headers to be
+  marked up programmatically.
+fix:
+  guidance: >
+    Mark up header cells with <th scope="col"> for column headers and
+    <th scope="row"> for row headers. If the table is purely for
+    layout, remove it and use CSS instead — layout tables should not
+    use <th> at all.
+test:
+  expect_fail: {tables_without_th: 1}
+  expect_pass: {tables_without_th: 0}

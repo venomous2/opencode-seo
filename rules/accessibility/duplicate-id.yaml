@@ -1,0 +1,22 @@
+id: duplicate-id
+category: accessibility
+severity: high
+confidence: high
+wcag: "4.1.1"
+wcag_level: "A"
+detect:
+  field: duplicate_ids
+  condition: gte
+  value: 1
+why: >
+  When two elements share an id, label associations, ARIA references
+  and anchor links can point at the wrong element. WCAG 4.1.1 requires
+  markup to parse cleanly, which includes unique id attributes.
+fix:
+  guidance: >
+    Make every id unique on the page. Rename duplicates (for example
+    id="email" and id="email-2") and update any matching <label for>,
+    aria-describedby and href="#..." references to suit.
+test:
+  expect_fail: {duplicate_ids: 2}
+  expect_pass: {duplicate_ids: 0}

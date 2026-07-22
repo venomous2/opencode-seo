@@ -1,0 +1,23 @@
+id: positive-tabindex
+category: accessibility
+severity: medium
+confidence: high
+wcag: "2.4.3"
+wcag_level: "A"
+detect:
+  field: positive_tabindex
+  condition: gte
+  value: 1
+why: >
+  A tabindex above zero hijacks the natural focus order and can trap
+  keyboard users or send focus somewhere unexpected. WCAG 2.4.3
+  requires the focus order to preserve meaning and operability.
+fix:
+  guidance: >
+    Remove positive tabindex values. Use tabindex="0" only to make a
+    custom widget focusable, and arrange the DOM so the reading order
+    is the focus order — never repair order with values like
+    tabindex="5".
+test:
+  expect_fail: {positive_tabindex: 1}
+  expect_pass: {positive_tabindex: 0}

@@ -1,0 +1,22 @@
+id: iframe-missing-title
+category: accessibility
+severity: medium
+confidence: high
+wcag: "4.1.2"
+wcag_level: "A"
+detect:
+  field: iframes_missing_title
+  condition: gte
+  value: 1
+why: >
+  Without a title attribute, assistive technology cannot tell the user
+  what an iframe contains, so they cannot decide whether to enter or
+  skip it. WCAG 4.1.2 requires frames to expose a name.
+fix:
+  guidance: >
+    Add a short descriptive title to every iframe, for example <iframe
+    title="Store locator map" src="...">. For frames with no meaningful
+    content, say so in the title rather than leaving it off.
+test:
+  expect_fail: {iframes_missing_title: 1}
+  expect_pass: {iframes_missing_title: 0}

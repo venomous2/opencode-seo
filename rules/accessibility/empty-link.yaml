@@ -1,0 +1,22 @@
+id: empty-link
+category: accessibility
+severity: high
+confidence: high
+wcag: "2.4.4"
+wcag_level: "A"
+detect:
+  field: empty_links
+  condition: gte
+  value: 1
+why: >
+  A link with no text and no accessible name gives screen-reader users
+  nothing to announce, so the link is effectively invisible to them.
+  WCAG 2.4.4 requires every link's purpose to be determinable.
+fix:
+  guidance: >
+    Give every <a> an accessible name: visible text, an aria-label such
+    as aria-label="View basket", or an image with alt text inside the
+    link. If the element is not meant to be a link, remove the anchor.
+test:
+  expect_fail: {empty_links: 1}
+  expect_pass: {empty_links: 0}
