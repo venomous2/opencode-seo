@@ -3,6 +3,22 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.11.1] - 2026-07-22
+
+### Added
+- **`--platform all`**: one check now queries ChatGPT, Claude, Gemini and
+  Perplexity in a single run
+- **Google AI Overviews leg**: every visibility check also runs the prompt
+  through the SERP API — reports whether an AIO exists, whether the brand
+  is cited in it, and which domains were cited
+- Platform defaults verified against DataForSEO's `/models` endpoints;
+  per-platform capability handling (Gemini rejects the country ISO field)
+
+### Verified live
+All four platforms + AIO leg working: Deel visible on ChatGPT, Claude and
+Gemini for "best employer of record UK" (75% rate), with exact cited
+sources returned per platform
+
 ## [0.11.0] - 2026-07-22
 
 API expansion and the AI visibility monitor.

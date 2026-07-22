@@ -42,12 +42,12 @@ LLM_ENDPOINTS = {
 }
 DEFAULT_PLATFORM = "chat_gpt"
 
-# Default model per platform (check `models` action for what your account
-# supports; override with --model).
+# Default model per platform (verified against the platform's /models
+# endpoint; override with --model).
 MODEL_DEFAULTS = {
     "chat_gpt": "gpt-4.1-mini",
-    "claude": "claude-sonnet-4",
-    "gemini": "gemini-2.0-flash",
+    "claude": "claude-sonnet-4-6",
+    "gemini": "gemini-3.5-flash",
     "perplexity": "sonar",
 }
 
@@ -102,6 +102,11 @@ def brand_mentioned(response_body: dict[str, Any], brand: str,
             "excerpt": excerpt}
 
 
+# Per-platform capability: which accept web_search_country_iso_code.
+# (Gemini's LLM Responses endpoint rejects it — 40501 Invalid Field.)
+ISO_SUPPORTED = {"chat_gpt", "claude", "perplexity"}
+
+
 def query_llm(prompt: str, location: str, language: str,
               platform: str = DEFAULT_PLATFORM, model: str | None = None,
               web_search: bool = True, sandbox: bool = False) -> dict[str, Any]:
@@ -116,7 +121,7 @@ def query_llm(prompt: str, location: str, language: str,
         "web_search": web_search,
     }
     iso = LOCATION_TO_ISO.get(location.strip().lower())
-    if web_search and iso:
+    if web_search and iso and platform in ISO_SUPPORTED:
         task["web_search_country_iso_code"] = iso
     return dfs_client.post(path, [task], sandbox=sandbox)
 
@@ -143,6 +148,22 @@ def cited_sources(response_body: dict[str, Any]) -> list[dict[str, str]]:
 
     walk(response_body)
     return sources
+
+
+def aio_check(serp_body: dict[str, Any], brand: str,
+              domain: str) -> dict[str, Any]:
+    """Check Google AI Overview presence + brand citation in a SERP result."""
+    result = dfs_client.first_result(serp_body)
+    items = result.get("items") or []
+    aio = next((i for i in items if i.get("type") == "ai_overview"), None)
+    if not aio:
+        return {"present": False}
+    mentioned = brand_mentioned({"aio": aio}, brand, domain)["mentioned"]
+    cited_domains = sorted({
+        ref.get("domain") for ref in (aio.get("references") or [])
+        if ref.get("domain")})
+    return {"present": True, "mentioned": mentioned,
+            "cited_domains": cited_domains}
 
 
 # ---------------------------------------------------------------------------
@@ -182,27 +203,34 @@ def load(domain: str, ts: int) -> dict[str, Any]:
         encoding="utf-8"))
 
 
+def _prompt_mentioned(record: dict[str, Any]) -> bool:
+    """A prompt counts as visible if any platform or AI Overview mentions it."""
+    if "llm" in record:  # new structure
+        if any(e.get("mentioned") for e in record["llm"]):
+            return True
+        return bool((record.get("ai_overview") or {}).get("mentioned"))
+    return bool(record.get("mentioned"))  # legacy single-platform shape
+
+
 def compare(old: dict[str, Any], new: dict[str, Any]) -> dict[str, Any]:
     """Per-prompt visibility change between two snapshots."""
     old_p = {r["prompt"]: r for r in old.get("results", [])}
     new_p = {r["prompt"]: r for r in new.get("results", [])}
-    gained = sorted(p for p in set(new_p) - set(old_p)
-                    if new_p[p].get("mentioned"))
-    lost = sorted(p for p in set(old_p) - set(new_p)
-                  if old_p[p].get("mentioned"))
-    changed = []
-    for prompt in set(old_p) & set(new_p):
-        before = bool(old_p[prompt].get("mentioned"))
-        after = bool(new_p[prompt].get("mentioned"))
-        if before != after:
-            (gained if after else lost).append(prompt)
+    gained, lost, kept = [], [], []
+    for prompt in set(old_p) | set(new_p):
+        before = _prompt_mentioned(old_p[prompt]) if prompt in old_p else False
+        after = _prompt_mentioned(new_p[prompt]) if prompt in new_p else False
+        if after and not before:
+            gained.append(prompt)
+        elif before and not after:
+            lost.append(prompt)
         elif after:
-            changed.append(prompt)
+            kept.append(prompt)
     return {
         "from": old.get("_saved_at"), "to": new.get("_saved_at"),
-        "visibility_gained": gained,
-        "visibility_lost": lost,
-        "still_visible": changed,
+        "visibility_gained": sorted(gained),
+        "visibility_lost": sorted(lost),
+        "still_visible": sorted(kept),
         "rate_from": old.get("visibility_rate"),
         "rate_to": new.get("visibility_rate"),
     }
@@ -218,43 +246,71 @@ def cmd_check(args: argparse.Namespace) -> int:
         print(json.dumps({"error": "No prompts given (--prompts a,b,c)"}))
         return 1
     location = dfs_client.normalise_location(args.location)
+    platforms = (sorted(LLM_ENDPOINTS) if args.platform == "all"
+                 else [args.platform])
     results = []
     for prompt in prompts:
-        record: dict[str, Any] = {"prompt": prompt, "platform": args.platform}
-        try:
-            body = query_llm(prompt, location, args.language,
-                             platform=args.platform, model=args.model,
-                             web_search=not args.no_web_search,
-                             sandbox=args.sandbox)
-            task_errors = [t for t in dfs_client.tasks(body)
-                           if t.get("status_code") not in (20000, None)]
-            if task_errors:
-                record["error"] = "; ".join(
-                    f"{t.get('status_code')} {t.get('status_message')}"
-                    for t in task_errors)
-                record["mentioned"] = None
-            else:
-                detection = brand_mentioned(body, args.brand, args.domain)
-                record.update(detection)
-                record["cited_sources"] = cited_sources(body)
-                record["cost"] = body.get("cost")
-        except (dfs_client.DfsError, dfs_client.ConfigError,
-                VisibilityError) as exc:
-            record["error"] = str(exc)
-            record["mentioned"] = None
+        # Google AI Overviews leg (SERP-side visibility)
+        record: dict[str, Any] = {"prompt": prompt, "llm": []}
+        if not args.no_aio:
+            try:
+                serp_body = dfs_client.post(
+                    dfs_client.ENDPOINTS["serp"],
+                    [{"keyword": prompt, "location_name": location,
+                      "language_name": args.language, "device": "desktop",
+                      "os": "windows", "depth": 20}],
+                    sandbox=args.sandbox)
+                record["ai_overview"] = aio_check(serp_body, args.brand,
+                                                  args.domain)
+            except (dfs_client.DfsError, dfs_client.ConfigError) as exc:
+                record["ai_overview"] = {"error": str(exc)}
+
+        # LLM Responses leg (per platform)
+        for platform in platforms:
+            entry: dict[str, Any] = {"platform": platform}
+            try:
+                body = query_llm(prompt, location, args.language,
+                                 platform=platform, model=args.model,
+                                 web_search=not args.no_web_search,
+                                 sandbox=args.sandbox)
+                task_errors = [t for t in dfs_client.tasks(body)
+                               if t.get("status_code") not in (20000, None)]
+                if task_errors:
+                    entry["error"] = "; ".join(
+                        f"{t.get('status_code')} {t.get('status_message')}"
+                        for t in task_errors)
+                    entry["mentioned"] = None
+                else:
+                    detection = brand_mentioned(body, args.brand, args.domain)
+                    entry.update(detection)
+                    entry["cited_sources"] = cited_sources(body)
+                    entry["cost"] = body.get("cost")
+            except (dfs_client.DfsError, dfs_client.ConfigError,
+                    VisibilityError) as exc:
+                entry["error"] = str(exc)
+                entry["mentioned"] = None
+            record["llm"].append(entry)
         results.append(record)
 
-    answered = [r for r in results if r.get("mentioned") is not None]
-    rate = (round(100 * sum(1 for r in answered if r["mentioned"])
-                  / len(answered), 1) if answered else None)
+    answered = [e for r in results for e in r["llm"]
+                if e.get("mentioned") is not None]
+    mentioned_n = sum(1 for e in answered if e["mentioned"])
+    rate = (round(100 * mentioned_n / len(answered), 1) if answered else None)
+    aio_present = [r for r in results
+                   if (r.get("ai_overview") or {}).get("present")]
+    aio_mentioned = sum(1 for r in aio_present
+                        if r["ai_overview"].get("mentioned"))
     snapshot = {
         "domain": args.domain, "brand": args.brand,
         "location": location, "language": args.language,
+        "platforms": platforms,
         "results": results,
         "prompts_checked": len(results),
-        "prompts_answered": len(answered),
-        "prompts_mentioned": sum(1 for r in answered if r["mentioned"]),
+        "llm_answers": len(answered),
+        "llm_mentions": mentioned_n,
         "visibility_rate": rate,
+        "aio_present": len(aio_present),
+        "aio_mentioned": aio_mentioned,
     }
     path = save_snapshot(args.domain, snapshot)
     snapshot["saved"] = str(path)
@@ -298,11 +354,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--location", default="United States")
     parser.add_argument("--language", default="English")
     parser.add_argument("--platform", default=DEFAULT_PLATFORM,
-                        choices=sorted(LLM_ENDPOINTS),
-                        help="which LLM to query (default chat_gpt)")
+                        choices=sorted(LLM_ENDPOINTS) + ["all"],
+                        help="which LLM to query, or 'all' for every platform")
     parser.add_argument("--model", help="model name override (per platform)")
     parser.add_argument("--no-web-search", action="store_true",
                         help="disable web search (default: enabled)")
+    parser.add_argument("--no-aio", action="store_true",
+                        help="skip the Google AI Overviews check")
     parser.add_argument("--sandbox", action="store_true")
     parser.add_argument("--pretty", action="store_true")
     args = parser.parse_args(argv)

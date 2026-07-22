@@ -361,6 +361,39 @@ class TestAiVisibility:
         assert "p3" in diff["visibility_gained"]
         assert diff["rate_to"] == 66.7
 
+    def test_aio_check_present_and_mentioned(self):
+        serp = {"tasks": [{"result": [{"items": [
+            {"type": "organic", "url": "https://a.com"},
+            {"type": "ai_overview",
+             "text": "Top picks include Acme and others.",
+             "references": [{"domain": "acme.example", "url": "https://acme.example"},
+                            {"domain": "rival.example", "url": "https://rival.example"}]},
+        ]}]}]}
+        out = ai_visibility.aio_check(serp, "Acme", "")
+        assert out["present"] is True
+        assert out["mentioned"] is True
+        assert out["cited_domains"] == ["acme.example", "rival.example"]
+
+    def test_aio_check_absent(self):
+        serp = {"tasks": [{"result": [{"items": [
+            {"type": "organic", "url": "https://a.com"}]}]}]}
+        assert ai_visibility.aio_check(serp, "Acme", "") == {"present": False}
+
+    def test_prompt_mentioned_new_structure(self):
+        record = {"prompt": "p",
+                  "llm": [{"platform": "chat_gpt", "mentioned": False},
+                          {"platform": "gemini", "mentioned": True}],
+                  "ai_overview": {"present": True, "mentioned": False}}
+        assert ai_visibility._prompt_mentioned(record) is True
+        record2 = {"prompt": "p",
+                   "llm": [{"platform": "chat_gpt", "mentioned": False}],
+                   "ai_overview": {"present": True, "mentioned": True}}
+        assert ai_visibility._prompt_mentioned(record2) is True
+        record3 = {"prompt": "p",
+                   "llm": [{"platform": "chat_gpt", "mentioned": False}],
+                   "ai_overview": {"present": False}}
+        assert ai_visibility._prompt_mentioned(record3) is False
+
 
 # ---------------------------------------------------------------------------
 # indexnow

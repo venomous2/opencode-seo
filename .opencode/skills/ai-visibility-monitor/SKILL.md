@@ -31,13 +31,18 @@ Use `dfs_client.py autocomplete --keyword "<seed>"` for real phrasing.
 
 ```
 python scripts/ai_visibility.py check --domain <domain> --brand "<brand>" \
-    --prompts "p1,p2,p3,..." --location "United Kingdom" --pretty
+    --prompts "p1,p2,p3,..." --platform all --location "United Kingdom" --pretty
 ```
 
-Each prompt returns: mentioned true/false, whether the hit was brand or
-domain, an excerpt, and cost. If the endpoint errors, the script says so
-per-prompt — do not fabricate results for failed prompts; mark them
-"unavailable" and continue.
+`--platform all` queries ChatGPT, Claude, Gemini and Perplexity in one
+run (or pick one with `--platform chat_gpt|claude|gemini|perplexity`).
+Every check also runs a **Google AI Overviews leg**: the prompt is run
+through the SERP API, so you see whether an AIO exists for the query and
+whether the brand is cited in it (with cited domains). Skip with `--no-aio`.
+
+Per platform you get: mentioned true/false, brand-vs-domain hit, an excerpt
+of the mention, and the **exact sources the AI cited**. If a platform
+errors, mark it "unavailable" — never fabricate results.
 
 ### 3. Baseline + mentions context
 
