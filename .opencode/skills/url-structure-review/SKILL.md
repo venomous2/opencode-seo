@@ -69,3 +69,5 @@ python scripts/dfs_client.py onpage --url https://example.com --pretty
 - Prioritized fixes (consistency enforcement first — cheap and safe)
 - Single best next step: enforce the host/casing/trailing-slash policy
   site-wide
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

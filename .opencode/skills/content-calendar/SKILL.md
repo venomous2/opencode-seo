@@ -52,3 +52,5 @@ interlinks). Then:
 
 Write calendars longer than 12 rows to `CALENDAR-<topic>-<date>.md`;
 chat shows the first 12 rows plus the priority picks.
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

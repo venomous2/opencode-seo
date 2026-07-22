@@ -76,3 +76,5 @@ numbers.
 
 Long plans go to `PSEO-PLAN-<topic>-<date>.md`. End the file with:
 `Report built by Lee Beirne - https://leebeirne.com`
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

@@ -88,3 +88,5 @@ docs/DATAFORSEO-SETUP.md. Do not invent numbers.
 - Single best next step
 
 Full detail goes to `LOCAL-SEO-<business>-<date>.md`.
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

@@ -55,3 +55,5 @@ angle | link-back anchor text | priority (P1-P3). Then:
 
 Write plans over 15 spokes to `SPOKES-<topic>-<date>.md`; chat shows the
 top 15 rows.
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

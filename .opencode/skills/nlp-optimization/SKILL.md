@@ -55,3 +55,5 @@ format being rewarded. The rewrite pass itself needs no API.
 
 Never change meaning — this is a clarity pass, not a content rewrite.
 Long documents go to `NLP-PASS-<slug>-<date>.md`.
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

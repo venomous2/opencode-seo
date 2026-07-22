@@ -67,3 +67,5 @@ docs/DATAFORSEO-SETUP.md. Do not invent numbers.
 
 Full keyword lists go to `KEYWORD-GAP-<domain>-<date>.md`; keep chat to the
 top 20 rows.
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

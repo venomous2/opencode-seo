@@ -50,3 +50,5 @@ critical / high / medium / low (duplicates and missing tags are
 critical; length and CTR polish are medium/low) with a one-line "why"
 each, then the single best next step. For batches over ~20 URLs, write
 `METADATA-<domain>-<date>.md` and show only the critical rows in chat.
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

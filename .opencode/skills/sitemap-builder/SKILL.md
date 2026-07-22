@@ -57,3 +57,5 @@ lines as evidence), then recommendations ranked critical / high /
 medium / low with a one-line "why" each, then the single best next
 step. Long audit details go to `SITEMAP-AUDIT-<domain>-<date>.md`;
 chat stays to the file path plus the key decisions made.
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

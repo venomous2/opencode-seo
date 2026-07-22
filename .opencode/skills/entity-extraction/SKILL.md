@@ -60,3 +60,5 @@ priority (must/should/optional). Then:
 
 Write checklists over 25 entities to `ENTITIES-<keyword>-<date>.md`;
 chat shows must-have gaps and differentiators only.
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

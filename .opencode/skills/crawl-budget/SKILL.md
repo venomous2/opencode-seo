@@ -73,3 +73,5 @@ available. Never invent crawl counts.
   it does NOT do (e.g. noindex vs disallow)
 - Single best next step: the one change that removes the largest share of
   crawl waste
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

@@ -64,3 +64,5 @@ numbers.
 - Facet rule table: facet combination → demand (volume data) → index/noindex
 - Proposed title, H1, and intro copy
 - Fix list ordered by impact with one-line why each + single best next step
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

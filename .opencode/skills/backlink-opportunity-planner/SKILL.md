@@ -62,3 +62,5 @@ the user to docs/DATAFORSEO-SETUP.md. Do not invent numbers.
 - Single best next step (highest-fit prospect + asset pairing)
 
 Full prospect lists go to `LINK-PROSPECTS-<domain>-<date>.md`.
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

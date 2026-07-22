@@ -60,3 +60,5 @@ meta drafts. Chat shows only:
   each
 - Single best next step: hand the brief to a writer, or offer
   faq-generator for the FAQ block
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

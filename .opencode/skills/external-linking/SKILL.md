@@ -53,3 +53,5 @@ recommendations ranked critical / high / medium / low — undisclosed paid
 links and rot are critical; missing citations are high — each with a
 one-line "why", then the single best next step. Multi-page audits go to
 `EXTERNAL-LINKS-<domain>-<date>.md`; chat shows the critical rows.
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

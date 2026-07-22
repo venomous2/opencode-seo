@@ -72,3 +72,5 @@ format opportunities with real byte savings — quote those, never estimate.
 - Byte-savings summary from the Lighthouse audit
 - Single best next step: fix the LCP image (eager + fetchpriority + sized)
   on the highest-traffic template
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

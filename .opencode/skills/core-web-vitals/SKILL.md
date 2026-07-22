@@ -73,3 +73,5 @@ data plus page-level CrUX. Never fabricate field numbers.
 - Prioritized fix list, each with a one-line "why" and expected metric
   it moves
 - Single best next step: the one fix with the largest expected field impact
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

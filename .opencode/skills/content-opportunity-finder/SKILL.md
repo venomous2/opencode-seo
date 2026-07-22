@@ -63,3 +63,5 @@ Two tables:
 
 Follow with the top 3 picks and a one-line why each, then the single best
 next step. Full lists go to `CONTENT-OPPORTUNITIES-<domain>-<date>.md`.
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

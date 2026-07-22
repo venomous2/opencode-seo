@@ -71,3 +71,5 @@ headless browser if one is available.)
   constraints
 - Single best next step: the smallest change that gets critical content
   into the served HTML
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

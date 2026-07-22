@@ -49,3 +49,5 @@ recommendations (critical / high / medium / low), each with a one-line
 "why", then the single best next step. For multi-page audits, write
 `SITE-AUDIT-<domain>-<date>.md` with the full detail and keep the chat
 reply to the top 10 items.
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

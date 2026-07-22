@@ -73,3 +73,5 @@ URLs, and Vary: User-Agent on dynamic serving. Never fabricate scores.
 - Mobile CWV snapshot from field data when available
 - Single best next step: close the worst parity gap or fix the viewport,
   whichever fails
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

@@ -70,3 +70,5 @@ and point the user to docs/DATAFORSEO-SETUP.md. Do not invent numbers.
   step
 
 Full program detail goes to `ECOMMERCE-SEO-<domain>-<date>.md`.
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

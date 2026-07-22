@@ -53,3 +53,5 @@ reader. Pure text analysis — no API calls needed.
 
 Keep rewrites in chat unless the full text is long; write
 `READABILITY-<slug>-<date>.md` for full-document passes.
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

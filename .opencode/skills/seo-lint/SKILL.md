@@ -69,3 +69,5 @@ Exit code is 1 when any page scores below the gate. Recommend `--min-score`
 - When the user wants rules tuned (different thresholds, new checks), point
   them at the `rules/` directory — every rule is a small YAML file with its
   own embedded test; see docs/RULE-ENGINE.md.
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

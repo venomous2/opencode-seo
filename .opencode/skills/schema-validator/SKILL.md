@@ -72,3 +72,5 @@ Google layer is configured.
   `python scripts/schema_gen.py <type> --field key=value` when useful)
 - Single best next step: fix the highest-severity error, then re-run this
   validator and confirm in Google's Rich Results Test
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

@@ -68,3 +68,5 @@ A markdown profile containing:
 
 If the gap pull ran, append the top 15 gap keywords as a table. Long detail
 goes to `COMPETITOR-AUDIT-<domain>-<date>.md`.
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

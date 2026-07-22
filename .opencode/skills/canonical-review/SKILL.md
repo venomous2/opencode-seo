@@ -57,3 +57,5 @@ duplicate-set decision table (URL set | chosen fix | 301/canonical/
 noindex), recommendations ranked critical / high / medium / low with a
 one-line "why" each, then the single best next step. Full detail goes to
 `CANONICAL-<domain>-<date>.md` for more than a handful of URLs.
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

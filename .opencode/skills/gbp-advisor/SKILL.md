@@ -61,3 +61,5 @@ Audit each element against the standard:
   why
 - Cadence plan: weekly posts, monthly photo adds, ongoing review asks
 - Single best next step (usually: fix primary category or answer open Q&A)
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

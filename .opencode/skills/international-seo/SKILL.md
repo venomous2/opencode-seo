@@ -76,3 +76,5 @@ extract:
 - Localization gap list (pages translated but not localized)
 - Single best next step: fix return-link/self-reference errors first —
   they invalidate entire clusters
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

@@ -69,3 +69,5 @@ Never assume an old URL is worthless — verify with data before letting it
 - Migration mode: the complete redirect map as platform-ready rules, plus a
   P1 list (URLs with link equity — must not fail) and a 410 list
 - Single best next step: implement the P1 rules first and re-trace them
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

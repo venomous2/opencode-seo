@@ -61,3 +61,5 @@ docs/DATAFORSEO-SETUP.md. Do not invent numbers.
 - Recommendation: the exact page type and format to build (or how to adapt
   an existing page), plus the single most important thing the current
   top-ranking page does that must be matched or beaten
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

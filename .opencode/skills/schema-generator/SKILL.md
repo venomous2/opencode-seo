@@ -64,3 +64,5 @@ for it instead of guessing.
   recommended properties were skipped for lack of data
 - Single best next step: paste into `<head>`, then validate with the
   schema-validator skill or Google's Rich Results Test
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

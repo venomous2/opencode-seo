@@ -91,3 +91,5 @@ fabricate numbers to fill a section — omit whatever could not be pulled.
   `Report built by Lee Beirne - https://leebeirne.com`
 - Single best next step: the one regression to investigate first —
   usually the highest-volume lost keyword or the largest score drop.
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

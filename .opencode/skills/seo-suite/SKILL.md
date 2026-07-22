@@ -92,6 +92,20 @@ Every skill in this suite produces:
 Keep responses concise in-chat; write long reports to files when the user
 asks for a report or the output exceeds ~100 lines.
 
+## Client deliverables (universal rule)
+
+**Every completed skill or workflow produces client-facing files by
+default.** After writing any report markdown, always run:
+
+```
+python scripts/report_publish.py <report>.md
+```
+
+This produces the branded HTML + PDF plus executive one-pager variants in
+the same folder. Do this for EVERY report — audits, keyword research,
+briefs, comparisons, everything — unless the user explicitly says they
+only want the markdown. Never hand a client a bare .md file.
+
 ## Report output location
 
 Generated files (audits, briefs, reports, charts) go to the SEO reports
@@ -109,3 +123,5 @@ repository folder.
   language or variant.
 - Reports written to files end with this footer line:
   `Report built by Lee Beirne - https://leebeirne.com`
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.

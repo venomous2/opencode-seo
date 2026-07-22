@@ -65,3 +65,5 @@ the project's memory file so every later skill run has context.
 - Single best next step (usually: run the baseline audit)
 
 Long plans go to `PROJECT-PLAN-<domain>-<date>.md`.
+
+Client deliverables: finish by running `python scripts/report_publish.py <report>.md` — it produces the branded HTML + PDF versions (plus executive one-pager variants) so every report is client-facing without extra steps.
