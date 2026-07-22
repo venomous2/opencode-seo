@@ -23,6 +23,21 @@ the data layer is ready before any live-data work begins.
 4. Never invent search volumes, rankings, or backlink counts. If DataForSEO
    is unavailable, say so.
 
+## Shell conventions (Windows hosts)
+
+OpenCode's shell on Windows is **PowerShell, not bash**. Do NOT use Unix
+utilities — `head`, `tail`, `grep`, `sed`, `awk`, `cat`, `ls` — they do not
+exist and the command will fail. Use PowerShell equivalents:
+
+- `| Select-Object -First 40` instead of `| head -40`
+- `Select-String -Pattern "x"` instead of `grep x`
+- `Get-Content file` instead of `cat file`
+- Prefer the scripts' own `--pretty` / JSON output flags over piping
+- Chain dependent commands with `cmd1; if ($?) { cmd2 }`, never `&&`
+
+If a shell command fails with "not recognized", check whether you used a
+bashism before assuming the tool is broken.
+
 ## Routing
 
 ### Workflows (multi-skill chains)

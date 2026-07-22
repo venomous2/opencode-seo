@@ -16,6 +16,10 @@ This repo is an OpenCode skill pack. If you are an agent working inside it:
 
 ## Conventions
 
+- **Shell**: on Windows, OpenCode uses PowerShell — never bashisms (`head`,
+  `tail`, `grep`, `&&`). Use `Select-Object -First N`, `Select-String`, and
+  `cmd1; if ($?) { cmd2 }` for chaining. Prefer script `--pretty`/JSON flags
+  over piping.
 - Skill frontmatter: ONLY `name` (must equal folder name) and `description`
   (≥30 chars, trigger keywords). No `tags`, `tools`, or `model` fields —
   OpenCode ignores/rejects them.
