@@ -58,6 +58,8 @@ score) so the orchestrator can synthesize a 0-100 site score.
 | `drift_store.py` | Timestamped per-domain SEO snapshots + compare |
 | `site_crawler.py` | Built-in concurrent crawler (v2): sitemap cross-check, near-duplicate detection, soft-404 probe, anchors, OG/Twitter, mixed content, security headers |
 | `link_graph.py` | Internal link graph analysis (orphans, hubs, depth, anchor quality) from crawl data |
+| `link_graph_render.py` | Visual radial link graph (branded SVG → HTML/PDF) |
+| `ai_visibility.py` | AI visibility monitor: LLM mention checks across ChatGPT/Claude/Gemini/Perplexity with cited-source capture and history |
 | `log_analyzer.py` | Access-log bot/crawl behaviour analysis |
 | `report_build.py` | Markdown → branded standalone HTML reports |
 | `schema_gen.py` | JSON-LD generator for 18 schema.org types |

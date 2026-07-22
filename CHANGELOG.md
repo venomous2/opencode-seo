@@ -3,6 +3,32 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.11.0] - 2026-07-22
+
+API expansion and the AI visibility monitor.
+
+### Added
+- **9 new DataForSEO endpoints**: Google Maps SERP (local pack), Google
+  News SERP, Bing SERP, YouTube SERP, Google Autocomplete, bulk keyword
+  difficulty, backlinks history, bulk domain ranks, and technology-stack
+  detection
+- **`ai_visibility.py`** — answers "does AI mention us when buyers ask?":
+  queries ChatGPT / Claude / Gemini / Perplexity via DataForSEO's LLM
+  Responses API (web search enabled), detects brand/domain mentions,
+  extracts the **exact sources the AI cited**, and stores dated snapshots
+  with compare-over-time (gained/lost visibility + rate deltas)
+- **`ai-visibility-monitor` skill** (84 skills total) — full workflow:
+  buyer-prompt building (autocomplete-assisted), visibility check, mentions
+  baseline, interpretation, charted client report, monthly cadence
+- 6 new tests (payload batch, mention detection, cited sources, store +
+  compare; 112 total)
+
+### Notes
+- LLM Responses payloads follow the documented contract (user_prompt +
+  model_name, web_search + country ISO); platform defaults overridable
+  with --model. Verified live: Deel correctly detected as cited for
+  "best employer of record UK" with its exact cited sources returned
+
 ## [0.10.1] - 2026-07-21
 
 ### Added

@@ -42,6 +42,15 @@ TTL = {
     "whois": 30 * 86400,
     "amazon": 24 * 3600,
     "trends": 7 * 86400,
+    "serp-maps": 6 * 3600,
+    "serp-news": 6 * 3600,
+    "serp-bing": 6 * 3600,
+    "serp-youtube": 6 * 3600,
+    "autocomplete": 24 * 3600,
+    "kd": 7 * 86400,
+    "backlinks-history": 24 * 3600,
+    "bulk-ranks": 24 * 3600,
+    "technologies": 30 * 86400,
 }
 DEFAULT_TTL = 24 * 3600
 

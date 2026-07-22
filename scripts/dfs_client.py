@@ -25,6 +25,15 @@ Instant commands (single live call):
     whois          WHOIS overview for a domain
     amazon         Amazon product SERP for a keyword (Merchant)
     trends         Google Trends interest over time for keywords
+    serp-maps      Google Maps (local pack) results for a keyword
+    serp-news      Google News results for a keyword
+    serp-bing      Bing organic results for a keyword
+    serp-youtube   YouTube organic results for a keyword
+    autocomplete   Google autocomplete suggestions for a keyword
+    kd             Bulk keyword difficulty for a keyword list (Labs)
+    backlinks-history  Backlink/referring-domain growth over time
+    bulk-ranks     Domain rank for a comma-separated target list
+    technologies   Technology stack detection for a domain
 
 Site crawl commands (task-based On-Page API):
     crawl          Full flow: start crawl, wait, return pages + summary
@@ -88,6 +97,15 @@ ENDPOINTS = {
     "whois": "/v3/domain_analytics/whois/overview/live",
     "amazon": "/v3/merchant/amazon/products/live",
     "trends": "/v3/keywords_data/google_trends/explore/live",
+    "serp-maps": "/v3/serp/google/maps/live/advanced",
+    "serp-news": "/v3/serp/google/news/live/advanced",
+    "serp-bing": "/v3/serp/bing/organic/live/advanced",
+    "serp-youtube": "/v3/serp/youtube/organic/live/advanced",
+    "autocomplete": "/v3/serp/google/autocomplete/live/advanced",
+    "kd": "/v3/dataforseo_labs/google/bulk_keyword_difficulty/live",
+    "backlinks-history": "/v3/backlinks/history/live",
+    "bulk-ranks": "/v3/backlinks/bulk_ranks/live",
+    "technologies": "/v3/domain_analytics/technologies/domain_technologies/live",
 }
 
 CRAWL_ENDPOINTS = {
@@ -273,6 +291,31 @@ def build_payload(command: str, args: argparse.Namespace) -> list[dict[str, Any]
         if args.date_to:
             task["date_to"] = args.date_to
         return [task]
+    if command in ("serp-maps", "serp-news", "serp-bing", "serp-youtube"):
+        return [{
+            "keyword": args.keyword, "location_name": loc, "language_name": lang,
+            "device": args.device, "os": "windows" if args.device == "desktop" else "android",
+            "depth": limit,
+        }]
+    if command == "autocomplete":
+        return [{"keyword": args.keyword, "location_name": loc,
+                 "language_name": lang}]
+    if command == "kd":
+        keywords = [k.strip() for k in args.keywords.split(",") if k.strip()]
+        return [{"keywords": keywords, "location_name": loc,
+                 "language_name": lang}]
+    if command == "backlinks-history":
+        task = {"target": args.target}
+        if args.date_from:
+            task["date_from"] = args.date_from
+        if args.date_to:
+            task["date_to"] = args.date_to
+        return [task]
+    if command == "bulk-ranks":
+        targets = [t.strip() for t in args.target.split(",") if t.strip()]
+        return [{"targets": targets}]
+    if command == "technologies":
+        return [{"target": args.target}]
     raise DfsError(f"Unknown command: {command}")
 
 

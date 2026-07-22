@@ -21,6 +21,7 @@ import cost_ledger  # noqa: E402
 import dfs_client  # noqa: E402
 import drift_store  # noqa: E402
 import indexnow  # noqa: E402
+import ai_visibility  # noqa: E402
 import link_graph  # noqa: E402
 import link_graph_render  # noqa: E402
 import log_analyzer  # noqa: E402
@@ -289,6 +290,76 @@ class TestDfsPayloads:
             location = "UK"
         payload = dfs_client.build_payload("volume", UkArgs())
         assert payload[0]["location_name"] == "United Kingdom"
+
+    def test_batch1_payloads(self):
+        class A(self.Args):
+            keywords = "a,b"
+            date_from = "2025-01-01"
+            date_to = "2026-01-01"
+        maps = dfs_client.build_payload("serp-maps", A())
+        assert maps[0]["keyword"] == "test kw" and maps[0]["depth"] == 10
+        ac = dfs_client.build_payload("autocomplete", A())
+        assert ac[0]["keyword"] == "test kw"
+        kd = dfs_client.build_payload("kd", A())
+        assert kd[0]["keywords"] == ["a", "b"]
+        hist = dfs_client.build_payload("backlinks-history", A())
+        assert hist[0]["target"] == "example.com"
+        assert hist[0]["date_from"] == "2025-01-01"
+        ranks = dfs_client.build_payload("bulk-ranks", A())
+        assert ranks[0]["targets"] == ["example.com"]
+        tech = dfs_client.build_payload("technologies", A())
+        assert tech[0]["target"] == "example.com"
+        for engine in ("serp-bing", "serp-youtube", "serp-news"):
+            payload = dfs_client.build_payload(engine, A())
+            assert payload[0]["keyword"] == "test kw"
+
+
+# ---------------------------------------------------------------------------
+# ai_visibility
+# ---------------------------------------------------------------------------
+
+class TestAiVisibility:
+    BODY = {"tasks": [{"result": [{"items": [
+        {"text": "For EOR in the UK, popular options include Acme Corp "
+                  "(acme.example), Remote, and Deel."}]}]}]}
+
+    def test_brand_mentioned_detection(self):
+        hit = ai_visibility.brand_mentioned(self.BODY, "Acme", "acme.example")
+        assert hit["mentioned"] is True
+        assert hit["brand_hit"] is True
+        assert "Acme" in hit["excerpt"]
+
+    def test_brand_not_mentioned(self):
+        miss = ai_visibility.brand_mentioned(self.BODY, "Nobody Inc", "")
+        assert miss["mentioned"] is False
+        assert miss["excerpt"] == ""
+
+    def test_domain_only_hit(self):
+        hit = ai_visibility.brand_mentioned(self.BODY, "Other Name",
+                                            "acme.example")
+        assert hit["mentioned"] is True
+        assert hit["domain_hit"] is True
+
+    def test_save_and_compare(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(ai_visibility, "STORE_DIR", tmp_path)
+        snap1 = {"results": [
+            {"prompt": "p1", "mentioned": True},
+            {"prompt": "p2", "mentioned": False}], "visibility_rate": 50.0}
+        snap2 = {"results": [
+            {"prompt": "p1", "mentioned": False},
+            {"prompt": "p2", "mentioned": True},
+            {"prompt": "p3", "mentioned": True}], "visibility_rate": 66.7}
+        ai_visibility.save_snapshot("x.com", snap1)
+        ai_visibility.save_snapshot("x.com", snap2)
+        snaps = ai_visibility.list_snapshots("x.com")
+        assert len(snaps) == 2
+        diff = ai_visibility.compare(
+            ai_visibility.load("x.com", snaps[0]),
+            ai_visibility.load("x.com", snaps[1]))
+        assert "p2" in diff["visibility_gained"]
+        assert "p1" in diff["visibility_lost"]
+        assert "p3" in diff["visibility_gained"]
+        assert diff["rate_to"] == 66.7
 
 
 # ---------------------------------------------------------------------------
