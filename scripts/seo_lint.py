@@ -158,6 +158,10 @@ def main(argv: list[str] | None = None) -> int:
     source.add_argument("--dir", help="lint every HTML file in a directory")
     parser.add_argument("--ext", default=".html", help="file extension for --dir")
     parser.add_argument("--category", help="restrict to one rule category")
+    parser.add_argument("--render", choices=["auto", "always", "never"],
+                        default="never",
+                        help="render JS first: auto = detect SPA and render "
+                             "if needed, always = force render, never = raw HTML")
     parser.add_argument("--min-score", type=int,
                         help="exit 1 if any page scores below this (CI gate)")
     parser.add_argument("--format", choices=["json", "text"], default="json")
@@ -172,16 +176,48 @@ def main(argv: list[str] | None = None) -> int:
 
     pages: list[dict[str, Any]] = []
     if args.url:
-        result = fetch(args.url, args.timeout)
-        if result.status != 200 or "html" not in result.content_type.lower():
-            print(json.dumps({"error": f"Fetch failed: HTTP {result.status}"}))
-            return 1
-        page = parse_html(result.body, args.url)
-        page["status"] = result.status
-        page["security_hsts"] = "strict-transport-security" in result.headers
-        page["security_csp"] = "content-security-policy" in result.headers
-        page["security_xfo"] = "x-frame-options" in result.headers
-        page["security_xcto"] = "x-content-type-options" in result.headers
+        html_text = None
+        render_engine = "raw"
+        raw_page = None
+        headers: dict[str, str] = {}
+        if args.render != "never":
+            import spa_detect
+            should_render = args.render == "always"
+            if args.render == "auto":
+                raw_result = fetch(args.url, args.timeout)
+                if raw_result.status == 200:
+                    verdict = spa_detect.detect(raw_result.body, args.url)
+                    should_render = verdict["should_render"]
+            if should_render:
+                import render_page
+                try:
+                    html_text, render_engine = render_page.render(
+                        args.url, engine="auto")
+                    raw_result = fetch(args.url, args.timeout)
+                    if raw_result.status == 200:
+                        raw_page = parse_html(raw_result.body, args.url)
+                        headers = raw_result.headers  # keep real headers
+                except Exception:  # noqa: BLE001 - fall back to raw HTML
+                    html_text = None
+        if html_text is None:
+            result = fetch(args.url, args.timeout)
+            if result.status != 200 or "html" not in result.content_type.lower():
+                print(json.dumps({"error": f"Fetch failed: HTTP {result.status}"}))
+                return 1
+            html_text = result.body
+            headers = result.headers
+        page = parse_html(html_text, args.url)
+        page["render_engine"] = render_engine
+        if raw_page is not None:
+            raw_words = max(raw_page.get("word_count") or 0, 1)
+            page["raw_word_count"] = raw_page.get("word_count")
+            page["js_content_ratio"] = round(
+                (page.get("word_count") or 0) / raw_words, 2)
+        page["status"] = 200
+        page["security_hsts"] = "strict-transport-security" in headers
+        page["security_csp"] = "content-security-policy" in headers
+        page["security_xfo"] = "x-frame-options" in headers
+        page["security_xcto"] = "x-content-type-options" in headers
         pages.append(page)
     elif args.file:
         path = Path(args.file)

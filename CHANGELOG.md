@@ -3,6 +3,34 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.14.0] - 2026-07-23
+
+JavaScript/SPA rendering — with zero new dependencies.
+
+### Added
+- **`spa_detect.py`** — stdlib SPA heuristics (empty root shells, framework
+  markers, text/markup ratio, link poverty, script density) returning a
+  verdict + evidence: `spa` / `maybe` / `static`. Audits only pay render
+  cost when it matters
+- **`render_page.py`** — renders JS pages via the headless browser already
+  installed (Edge/Chrome `--dump-dom` + virtual-time budget), falling back
+  to DataForSEO JS rendering when no local browser exists. `--diff`
+  produces the raw-vs-rendered gap report: word/link/schema deltas and the
+  `js_content_ratio` ("what does Google see that curl doesn't?")
+- **`seo_lint.py --render auto|always|never`** — auto runs spa_detect and
+  renders only when needed; the full rule engine then runs on the rendered
+  DOM. Rendered pages keep the raw fetch's response headers for the
+  security rules
+- **`js-content-gap` rule** (54 total) — fires when the rendered page has
+  ≥50% more content than the raw HTML
+- `javascript-seo` skill now leads with the deterministic render tooling;
+  `workflow-site-audit` checks SPA risk before any "missing content" claims
+- 5 new tests (141 total)
+
+### Design note
+No Playwright, no 400MB download: the suite renders with the browser it
+already drives for PDF export, keeping the zero-heavy-dependency install.
+
 ## [0.13.0] - 2026-07-23
 
 Conversion rate optimisation.

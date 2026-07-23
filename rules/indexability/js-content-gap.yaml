@@ -1,0 +1,22 @@
+id: js-content-gap
+category: indexability
+severity: high
+confidence: high
+detect:
+  field: js_content_ratio
+  condition: gte
+  value: 1.5
+why: >
+  The rendered page contains at least 50% more text than the raw HTML —
+  meaning a large share of this page's content only exists after JavaScript
+  runs. Crawlers and tools reading raw HTML (including some AI crawlers and
+  older bots) will miss it, and rendering delays push indexation back.
+fix:
+  guidance: >
+    Move business-critical content into the initial HTML: server-side
+    rendering (SSR), static generation (SSG), or prerendering for the pages
+    that must rank. Verify with `python scripts/render_page.py --url U --diff`
+    that the gap closes.
+test:
+  expect_fail: {js_content_ratio: 2.1}
+  expect_pass: {js_content_ratio: 1.1}

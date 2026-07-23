@@ -26,6 +26,13 @@ live pulls in parallel where possible, then synthesizes.
    invented path is not evidence, and unchecked pages are not missing pages.
    If a data pull errors or returns the wrong market, mark that section
    "data unavailable" instead of drawing conclusions from it.
+5. **Check for JS rendering risk early**: run
+   `python scripts/spa_detect.py --url <homepage>` — if the verdict is
+   `spa` or `maybe`, lint key pages with
+   `seo_lint.py --render auto` (renders via the local headless browser or
+   DataForSEO) and include the `js-content-ratio` in the technical
+   findings. Never report "missing content/schema" on an SPA until the
+   rendered DOM has been checked.
 
 ## Phase 1 — Live data pulls (run in parallel bash calls)
 

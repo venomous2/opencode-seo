@@ -139,6 +139,8 @@ def evaluate(detect: dict[str, Any], page: dict[str, Any]) -> bool:
         return value is True
     if condition == "is_false":
         return value is False or value is None
+    if condition == "missing":
+        return field not in page
     if condition == "min_length":
         return _length(value) < int(expected)      # fires when TOO SHORT
     if condition == "max_length":

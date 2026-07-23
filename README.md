@@ -177,6 +177,8 @@ and load it with `--client <name>`.
 | `seo_lint.py` | "ESLint for SEO": lint URL/file/dir, `--min-score` CI gate |
 | `seo_fix.py` | Fix engine: lint findings → concrete patches with `.bak` backups |
 | `citation_score.py` | Citation readiness: 11 weighted criteria → 0-100 score + recommendations |
+| `spa_detect.py` | SPA detection heuristics — decides if a page needs JS rendering |
+| `render_page.py` | Zero-dependency JS rendering (headless browser `--dump-dom`) + raw-vs-rendered diff |
 | `indexnow.py` | Instant indexing pings to Bing/Yandex on publish |
 | `report_pdf.py` | HTML reports → PDF via the headless browser already installed |
 | `report_publish.py` | One command: markdown → branded HTML + PDF + executive one-pagers |

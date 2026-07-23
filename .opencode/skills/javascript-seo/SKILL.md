@@ -18,14 +18,34 @@ client-side rendering can be indexed late, incompletely, or not at all.
 
 ## Data pulls
 
-Fetch the raw served HTML with the webfetch tool — this is the pre-render
-view, equivalent to view-source. Record:
+Deterministic, zero-dependency render tooling (use these FIRST):
 
-- Whether `<body>` contains real content or an empty shell
-  (`<div id="root"></div>`, `<div id="app"></div>` with nothing inside)
-- Title, meta description, canonical, hreflang, robots meta in served HTML
-- Links: real `<a href>` in HTML vs links injected by JS on click
-- Structured data present in served HTML vs injected client-side
+```
+python scripts/spa_detect.py --url <url> --pretty
+```
+
+`spa_detect` scores SPA signals (empty root shells, framework markers,
+text/markup ratio) and returns a verdict: `spa` / `maybe` / `static` with
+evidence per signal. Static pages skip rendering entirely — fast and free.
+
+```
+python scripts/render_page.py --url <url> --diff
+```
+
+`render_page` renders the page in the local headless browser (Edge/Chrome
+`--dump-dom` with a virtual-time budget — no new dependencies; falls back
+to DataForSEO JS rendering if no browser is present). `--diff` produces
+the **rendered-vs-source gap**: word counts, links, schema blocks, title
+changes, and the `js_content_ratio`. A ratio ≥ 1.5 means raw-HTML analysis
+(and some crawlers) miss a third or more of the content.
+
+```
+python scripts/seo_lint.py --url <url> --render auto --format text
+```
+
+`--render auto` runs spa_detect first and only renders when needed
+(`always` forces, `never` = raw). The full rule engine then runs on the
+rendered DOM, including the `js-content-gap` rule.
 
 Optional confirmation of what Google indexed:
 

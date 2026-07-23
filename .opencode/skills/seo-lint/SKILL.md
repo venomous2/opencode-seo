@@ -24,9 +24,15 @@ prioritise.
 python scripts/seo_lint.py --url <url> --format text
 python scripts/seo_lint.py --file <page.html> --format text
 python scripts/seo_lint.py --dir <folder> --min-score 80
+python scripts/seo_lint.py --url <url> --render auto     # JS-rendered DOM when the page is an SPA
 python scripts/rule_engine.py list                 # every available rule
 python scripts/rule_engine.py test                 # self-test all rules
 ```
+
+For JavaScript-heavy sites: `spa_detect.py --url U` gives the render
+verdict; `render_page.py --url U --diff` quantifies the raw-vs-rendered
+content gap; `--render always` forces rendering through the local headless
+browser (DataForSEO fallback when no browser exists).
 
 ## Process
 

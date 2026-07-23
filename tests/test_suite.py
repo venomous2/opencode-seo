@@ -34,6 +34,7 @@ import schema_gen  # noqa: E402
 import seo_config  # noqa: E402
 import seo_fix  # noqa: E402
 import seo_lint  # noqa: E402
+import spa_detect  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -1223,3 +1224,64 @@ class TestCroParsing:
     def test_live_chat_marker(self):
         page = self._page('<p>Chat with us</p><div id="intercom-container"></div>')
         assert page["live_chat"] is True
+
+
+# ---------------------------------------------------------------------------
+# spa_detect + render diff
+# ---------------------------------------------------------------------------
+
+SPA_SHELL = ('<html><head><title>App</title>'
+             '<script src="/_next/static/chunks/main.js"></script>'
+             '<script src="/_next/static/chunks/react.js"></script>'
+             '<script id="__NEXT_DATA__" type="application/json">{}</script>'
+             '</head><body><div id="root"></div></body></html>')
+
+STATIC_PAGE = ("<html><head><title>Guide</title></head><body><h1>Guide</h1>"
+               "<p>" + " ".join(["word"] * 300) + "</p>"
+               '<a href="/a">A</a><a href="/b">B</a><a href="/c">C</a>'
+               "</body></html>")
+
+
+class TestSpaDetect:
+    def test_spa_shell_detected(self):
+        result = spa_detect.detect(SPA_SHELL, "https://spa.example")
+        assert result["verdict"] == "spa"
+        assert result["should_render"] is True
+        signals = {s["signal"] for s in result["signals"]}
+        assert "app_shell" in signals
+        assert "framework_markers" in signals
+
+    def test_static_page_not_spa(self):
+        result = spa_detect.detect(STATIC_PAGE, "https://x.com")
+        assert result["verdict"] == "static"
+        assert result["should_render"] is False
+        assert result["stats"]["visible_words"] >= 300
+
+    def test_framework_markers_alone_maybe(self):
+        html = ("<html><head></head><body><h1>Hi</h1><p>"
+                + " ".join(["word"] * 200)
+                + '</p><script id="__NEXT_DATA__" type="application/json">{}</script>'
+                + "</body></html>")
+        result = spa_detect.detect(html, "https://x.com")
+        assert result["score"] >= 1
+
+
+class TestRenderDiff:
+    def test_diff_computes_ratio_and_verdict(self):
+        import render_page
+        raw = "<html><body><p>" + " ".join(["word"] * 50) + "</p></body></html>"
+        rendered = ("<html><body><p>" + " ".join(["word"] * 50)
+                    + " " + " ".join(["more"] * 150) + "</p></body></html>")
+        diff = render_page.diff(raw, rendered, "https://x.com")
+        assert diff["word_count"]["raw"] == 50
+        assert diff["word_count"]["rendered"] == 200
+        assert diff["js_content_ratio"] == 4.0
+        assert "significant" in diff["verdict"]
+
+    def test_js_content_gap_rule(self):
+        rules = [r for r in rule_engine.load_rules()
+                 if r["id"] == "js-content-gap"]
+        fired = rule_engine.run({"js_content_ratio": 2.1}, rules)
+        assert fired["failed"] == 1
+        passed = rule_engine.run({"js_content_ratio": 1.1}, rules)
+        assert passed["failed"] == 0
