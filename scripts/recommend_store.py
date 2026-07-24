@@ -36,6 +36,13 @@ Status lifecycle:
     ignored   consciously dismissed (re-raising keeps it ignored but counts)
     resolved  no longer detected by a lint run that checked for it
 
+Priority score (computed on read, never stored — always current):
+    impact x confidence, where impact is severity on a 1-5 scale, raised
+    (capped at 5) when the evidence carries an estimated monthly click
+    value; x1.25 when auto-fixable; +10% per re-raise (capped +50%) so
+    persistent problems float up. Deterministic and explainable — every
+    component is visible on the record.
+
 Usage:
     python scripts/recommend_store.py add --domain example.com --file recs.json
     echo '[{...}]' | python scripts/recommend_store.py add --domain example.com
@@ -51,6 +58,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import re
 import sys
 import time
@@ -68,6 +76,35 @@ SEVERITIES = ("critical", "high", "medium", "low")
 CONFIDENCES = ("high", "medium", "low")
 
 _SEVERITY_ORDER = {s: i for i, s in enumerate(SEVERITIES)}
+_IMPACT = {"critical": 5.0, "high": 4.0, "medium": 2.0, "low": 1.0}
+_CONFIDENCE_WEIGHT = {"high": 1.0, "medium": 0.8, "low": 0.6}
+
+
+def priority_score(rec: dict[str, Any]) -> float:
+    """Deterministic 0-ish priority: impact x confidence, with nudges.
+
+    impact       severity on a 1-5 scale. If the evidence carries an
+                 est_monthly_clicks value, impact rises to a log-scaled
+                 value impact (10/mo -> 2, 100 -> 3, 1000 -> 4) when that
+                 beats the severity — value-backed findings can outrank
+                 severity-only ones. Capped at 5.
+    confidence   detection certainty: high 1.0 / medium 0.8 / low 0.6
+    auto-fixable x1.25 — cheap to action, so do it first
+    persistence  +10% per re-raise, capped at +50% — problems that keep
+                 coming back deserve attention
+    """
+    impact = _IMPACT.get(rec.get("severity", "medium"), 2.0)
+    evidence = rec.get("evidence") or {}
+    est = evidence.get("est_monthly_clicks")
+    if isinstance(est, (int, float)) and est > 1:
+        value_impact = min(5.0, 1.0 + math.log10(est))
+        impact = max(impact, value_impact)
+    score = impact * _CONFIDENCE_WEIGHT.get(rec.get("confidence", "medium"),
+                                            0.8)
+    if rec.get("auto_fixable"):
+        score *= 1.25
+    score *= min(1.0 + 0.1 * (rec.get("times_raised", 1) - 1), 1.5)
+    return round(score, 2)
 
 
 # ---------------------------------------------------------------------------
@@ -244,7 +281,8 @@ def get(domain: str, rec_id: str) -> dict[str, Any] | None:
 
 def list_recs(domain: str, status: str | None = None,
               severity: str | None = None,
-              include_closed: bool = False) -> list[dict[str, Any]]:
+              include_closed: bool = False,
+              sort: str = "priority") -> list[dict[str, Any]]:
     recs = list(replay(domain).values())
     if status:
         recs = [r for r in recs if r["status"] == status]
@@ -252,7 +290,14 @@ def list_recs(domain: str, status: str | None = None,
         recs = [r for r in recs if r["status"] not in CLOSED]
     if severity:
         recs = [r for r in recs if r["severity"] == severity]
-    recs.sort(key=lambda r: (_SEVERITY_ORDER[r["severity"]], -r["updated"]))
+    for rec in recs:
+        rec["priority"] = priority_score(rec)
+    if sort == "priority":
+        recs.sort(key=lambda r: (-r["priority"],
+                                 _SEVERITY_ORDER[r["severity"]]))
+    else:
+        recs.sort(key=lambda r: (_SEVERITY_ORDER[r["severity"]],
+                                 -r["updated"]))
     return recs
 
 
@@ -371,6 +416,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--severity", help="severity filter (list)")
     parser.add_argument("--all", action="store_true",
                         help="include done/ignored/resolved (list)")
+    parser.add_argument("--sort", choices=["priority", "severity"],
+                        default="priority", help="ordering for list")
     parser.add_argument("--note", help="optional note recorded with set")
     args = parser.parse_args(argv)
 
@@ -396,7 +443,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.action == "list":
             recs = list_recs(domain, status=args.status,
                              severity=args.severity,
-                             include_closed=args.all)
+                             include_closed=args.all, sort=args.sort)
             print(json.dumps({"domain": domain, "count": len(recs),
                               "recommendations": recs},
                              indent=2, ensure_ascii=False))

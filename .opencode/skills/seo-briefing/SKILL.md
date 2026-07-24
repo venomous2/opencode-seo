@@ -44,10 +44,21 @@ prints the exact Task Scheduler / cron line to automate it.
    (reopened items), anything raised since the last snapshot.
 3. **Recent wins** — recommendations resolved or marked done since the last
    snapshot, plus positive drift movements (rankings up, mentions up).
-4. **Today's actions** — the top 3–5 open recommendations, each with its
-   one-line why and whether `seo_fix` can patch it automatically.
+4. **Today's actions** — the top 3–5 open recommendations in priority order
+   (the store sorts by impact × confidence with auto-fixable and
+   persistence nudges), each with its one-line why and whether `seo_fix`
+   can patch it automatically. When a recommendation carries an estimated
+   click value, state it.
 5. **Single best next step** — the one action to start with, and the exact
    command or skill that does it.
+
+**Proving it works:** when recommendations have been completed recently,
+`python scripts/impact_report.py --domain <domain>` shows what moved
+afterwards (positions for ranking fixes, URL-level movement for page
+fixes). Report the verdicts with the built-in caveat: association, not
+causation. For "what is fixing this worth?", `python scripts/seo_forecast.py
+--domain <domain>` estimates clicks at a target position with its
+assumptions printed alongside.
 
 ## Output
 

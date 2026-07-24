@@ -163,16 +163,23 @@ def build_markdown(domain: str, limit: int = 10
     # -- top actions ----------------------------------------------------------
     md.append("\n## Top actions\n")
     if actionable:
-        md.append("| Severity | Action | Why | Status | Fixable |")
-        md.append("|---|---|---|---|---|")
+        md.append("*Ordered by priority score (impact x confidence, with "
+                  "auto-fixable and persistence nudges).*\n")
+        md.append("| Priority | Severity | Action | Why | Status | Fixable |")
+        md.append("|---|---|---|---|---|---|")
         for rec in actionable[:limit]:
             action = _humanise(rec["finding"])
             if rec["url"]:
                 action += f" — {_short_url(rec['url'])}"
+            est = (rec.get("evidence") or {}).get("est_monthly_clicks")
+            if isinstance(est, (int, float)) and est > 0:
+                action += f" *(~{est:g} clicks/mo at stake)*"
             fixable = "✓ auto" if rec["auto_fixable"] else "manual"
-            md.append("| {sev} | {act} | {why} | {status} | {fix} |".format(
-                sev=rec["severity"], act=_cell(action, 70),
-                why=_cell(rec["why"], 110), status=rec["status"], fix=fixable))
+            md.append("| {pri} | {sev} | {act} | {why} | {status} | {fix} |"
+                      .format(pri=rec.get("priority", "—"),
+                              sev=rec["severity"], act=_cell(action, 80),
+                              why=_cell(rec["why"], 100),
+                              status=rec["status"], fix=fixable))
         remaining = store["actionable"] - min(limit, len(actionable))
         if remaining > 0:
             md.append(f"\n*…and {remaining} more in the queue "

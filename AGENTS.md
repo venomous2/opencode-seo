@@ -10,7 +10,8 @@ This repo is an OpenCode skill pack. If you are an agent working inside it:
 - `.opencode/plugins/*.ts` — optional OpenCode plugin (project-memory nudge)
 - `scripts/` — Python data layer (DataForSEO mandatory, Google optional,
   plus cache / cost ledger / drift store / recommendation store / event log /
-  dashboard / watch (monitoring) / crawlers / report builder)
+  dashboard / watch (monitoring) / forecast + impact / crawlers /
+  report builder)
 - `tests/` — pytest suite (offline; `python -m pytest tests/ -q`)
 - `docs/` — setup and architecture docs
 - `validate.py` — structure validator; run after adding/changing skills

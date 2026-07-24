@@ -62,6 +62,8 @@ score) so the orchestrator can synthesize a 0-100 site score.
 | `event_log.py` | Per-domain event timeline (JSONL): findings raised/resolved, lint saves, drift snapshots, manual notes — the chronological feed behind the dashboard and briefing |
 | `project_dashboard.py` | Mission-control HTML dashboard: aggregates recommendation queue + drift health + event timeline + cost ledger into one branded page via report_build |
 | `watch.py` | Scheduled monitoring bundle (daily/weekly profiles): lint → store, rankings diff → loss/recovery recommendations, competitor growth flags, backlinks + AI visibility into drift; `schedule` prints Task Scheduler/cron lines |
+| `seo_forecast.py` | Honest click forecasting: volume × position-CTR with a printed uncertainty band and every assumption in the output; can snapshot the scenario into drift |
+| `impact_report.py` | Change-impact analysis: joins completed recommendations to bracketing drift snapshots (keyword/URL movement) with association-not-causation verdicts |
 | `site_crawler.py` | Built-in concurrent crawler (v2): sitemap cross-check, near-duplicate detection, soft-404 probe, anchors, OG/Twitter, mixed content, security headers |
 | `link_graph.py` | Internal link graph analysis (orphans, hubs, depth, anchor quality) from crawl data |
 | `link_graph_render.py` | Visual radial link graph (branded SVG → HTML/PDF) |

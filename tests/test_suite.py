@@ -21,6 +21,7 @@ import cost_ledger  # noqa: E402
 import dfs_client  # noqa: E402
 import drift_store  # noqa: E402
 import event_log  # noqa: E402
+import impact_report  # noqa: E402
 import indexnow  # noqa: E402
 import ai_visibility  # noqa: E402
 import link_graph  # noqa: E402
@@ -36,6 +37,7 @@ import rule_engine  # noqa: E402
 import schema_gen  # noqa: E402
 import seo_config  # noqa: E402
 import seo_fix  # noqa: E402
+import seo_forecast  # noqa: E402
 import seo_lint  # noqa: E402
 import spa_detect  # noqa: E402
 import watch  # noqa: E402
@@ -744,6 +746,152 @@ class TestRecommendStore:
         recommend_store.raise_rec("other.co.uk", _rec())
         assert recommend_store.domains() == ["example.com", "other.co.uk"]
 
+    def test_priority_score_components(self):
+        base = {"severity": "critical", "confidence": "high",
+                "times_raised": 1}
+        assert recommend_store.priority_score(base) == 5.0
+        assert recommend_store.priority_score(
+            {**base, "auto_fixable": True}) == 6.25
+        assert recommend_store.priority_score(
+            {**base, "times_raised": 3}) == 6.0          # +10% per re-raise
+        capped = recommend_store.priority_score({**base, "times_raised": 99})
+        assert capped == 7.5                             # persistence cap +50%
+        valued = {"severity": "medium", "confidence": "high",
+                  "times_raised": 1,
+                  "evidence": {"est_monthly_clicks": 1000}}
+        # value impact (1 + log10(1000) = 4) beats the medium severity (2)
+        assert recommend_store.priority_score(valued) == 4.0
+
+    def test_list_orders_by_priority(self):
+        recommend_store.raise_rec(
+            "example.com",
+            _rec(finding="medium-with-value", source="rule:m1",
+                 severity="medium", confidence="high",
+                 evidence={"est_monthly_clicks": 1000}))
+        recommend_store.raise_rec("example.com", _rec())  # critical, plain
+        recs = recommend_store.list_recs("example.com")
+        assert all("priority" in r for r in recs)
+        # both score 4.0; the critical wins the tiebreak on severity
+        assert recs[0]["finding"] == "missing-title"
+        assert recs[1]["finding"] == "medium-with-value"
+        sev = recommend_store.list_recs("example.com", sort="severity")
+        assert sev[0]["severity"] == "critical"
+
+
+# ---------------------------------------------------------------------------
+# seo_forecast
+# ---------------------------------------------------------------------------
+
+class TestSeoForecast:
+    @pytest.fixture(autouse=True)
+    def temp_drift(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(drift_store, "DRIFT_DIR", tmp_path / "drift")
+        monkeypatch.setattr(event_log, "EVENTS_DIR", tmp_path / "events")
+        yield
+
+    def test_ctr_boundaries(self):
+        assert seo_forecast.ctr(1) == 0.25
+        assert seo_forecast.ctr(10) == 0.010
+        assert seo_forecast.ctr(15) == 0.004
+        assert seo_forecast.ctr(25) == 0.001
+        assert seo_forecast.ctr(0) == seo_forecast.ctr(1)
+
+    def test_estimate_bands(self):
+        est = seo_forecast.estimate(1000, 3)
+        assert est["expected"] == 80
+        assert est["low"] == 48 and est["high"] == 112
+
+    def test_main_offline_from_snapshot(self, capsys):
+        drift_store.save("f.com", {"rankings": [
+            {"keyword": "a", "position": 8, "url": "/a",
+             "search_volume": 1000},
+            {"keyword": "b", "position": 15, "url": "/b",
+             "search_volume": 500}]})
+        rc = seo_forecast.main(["--domain", "f.com", "--target-position",
+                                "3", "--snapshot"])
+        assert rc == 0
+        out = json.loads(capsys.readouterr().out)
+        assert out["totals"]["current_clicks_expected"] == 20   # 18 + 2
+        assert out["totals"]["target_clicks_expected"] == 120   # 80 + 40
+        assert out["totals"]["uplift_expected"] == 100
+        assert out["totals"]["uplift_low"] == 52
+        assert out["totals"]["uplift_high"] == 148
+        assert out["keywords"][0]["keyword"] == "a"             # volume order
+        assert "ctr_curve" in out["assumptions"]
+        latest = drift_store.load("f.com",
+                                  drift_store.list_snapshots("f.com")[-1])
+        assert latest["forecast"]["uplift_expected"] == 100
+
+    def test_keywords_flag_uses_volume_pull(self, monkeypatch, capsys):
+        drift_store.save("f2.com", {"rankings": [
+            {"keyword": "c", "position": 5, "url": "/c",
+             "search_volume": 200}]})
+        monkeypatch.setattr(seo_forecast, "_dfs", lambda *a, **k: {
+            "result": [{"items": [{"keyword": "d",
+                                   "search_volume": 300}]}]})
+        rc = seo_forecast.main(["--domain", "f2.com", "--keywords", "c,d"])
+        assert rc == 0
+        out = json.loads(capsys.readouterr().out)
+        rows = {r["keyword"]: r for r in out["keywords"]}
+        assert rows["c"]["current_position"] == 5
+        assert rows["d"]["current_position"] is None
+        assert rows["d"]["target_clicks"]["expected"] == 24     # 300 x 0.08
+
+
+# ---------------------------------------------------------------------------
+# impact_report
+# ---------------------------------------------------------------------------
+
+class TestImpactReport:
+    @pytest.fixture(autouse=True)
+    def temp_stores(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(recommend_store, "RECS_DIR", tmp_path / "recs")
+        monkeypatch.setattr(drift_store, "DRIFT_DIR", tmp_path / "drift")
+        monkeypatch.setattr(event_log, "EVENTS_DIR", tmp_path / "events")
+        yield
+
+    def test_keyword_fix_verdict_improved(self):
+        drift_store.save("example.com", {"rankings": [
+            {"keyword": "espresso", "position": 18, "url": "/e"}]})
+        rec = recommend_store.raise_rec("example.com", {
+            "url": "/e", "source": "skill:watch",
+            "key": "rank-loss-espresso",
+            "finding": "Ranking dropped: 'espresso' 12 → 18",
+            "severity": "high",
+            "evidence": {"keyword": "espresso", "was": 12, "now": 18}})
+        recommend_store.set_status("example.com", rec["id"], "done")
+        drift_store.save("example.com", {"rankings": [
+            {"keyword": "espresso", "position": 6, "url": "/e"}]})
+        out = impact_report.report("example.com", 90)
+        assert out["evaluated"] == 1
+        assert out["counts"]["improved"] == 1
+        assert out["items"][0]["verdict"] == "improved"
+        assert "association" in out["note"]
+
+    def test_url_fix_verdict_and_insufficient_data(self):
+        drift_store.save("example.com", {"rankings": [
+            {"keyword": "a", "position": 12, "url": "/p"},
+            {"keyword": "b", "position": 14, "url": "/p"}]})
+        rec = recommend_store.raise_rec("example.com", {
+            "url": "/p", "source": "rule:missing-title",
+            "finding": "missing-title", "severity": "critical"})
+        recommend_store.set_status("example.com", rec["id"], "done")
+        drift_store.save("example.com", {"rankings": [
+            {"keyword": "a", "position": 5, "url": "/p"},
+            {"keyword": "b", "position": 7, "url": "/p"}]})
+        # completed after the newest snapshot -> nothing to measure yet
+        late = recommend_store.raise_rec("example.com", {
+            "url": "/q", "source": "rule:missing-h1",
+            "finding": "missing-h1", "severity": "high"})
+        recommend_store.set_status("example.com", late["id"], "done",
+                                   note="just now")
+        out = impact_report.report("example.com", 90)
+        verdicts = {i["finding"]: i["verdict"] for i in out["items"]}
+        assert verdicts["missing-title"] == "improved"
+        assert verdicts["missing-h1"] == "insufficient_data"
+        assert out["counts"]["improved"] == 1
+        assert out["counts"]["insufficient_data"] == 1
+
 
 # ---------------------------------------------------------------------------
 # event_log
@@ -898,6 +1046,28 @@ class TestWatch:
         monkeypatch.setattr(watch, "_ai_visibility",
                             lambda *a, **k: pytest.fail("offline"))
         yield
+
+    def test_rank_items_captures_search_volume(self):
+        labs = {"result": [{"items": [{
+            "keyword_data": {"keyword": "espresso",
+                             "keyword_info": {"search_volume": 1900}},
+            "ranked_serp_element": {"serp_item": {"rank_group": 7,
+                                                  "url": "/e"}}}]}]}
+        items = watch.rank_items(labs)
+        assert items[0]["search_volume"] == 1900
+
+    def test_rank_loss_rec_carries_click_estimate(self, monkeypatch):
+        drift_store.save("example.com", {"rankings": [
+            {"keyword": "grinders", "position": 12, "url": "/g",
+             "search_volume": 50000}]})
+        monkeypatch.setattr(watch, "_dfs", lambda *a, **k: _ranked_payload())
+        watch.check_rankings("example.com", "United States", "English", 50)
+        recs = recommend_store.list_recs("example.com")
+        evidence = recs[0]["evidence"]
+        assert evidence["est_monthly_searches"] == 50000
+        assert evidence["est_monthly_clicks"] == 200   # 50000 x CTR(12)
+        # value impact (3.3) lifts it above the medium severity base (2.0)
+        assert recs[0]["priority"] > 2.0
 
     def test_rank_items_simple_and_labs_shapes(self):
         simple = _ranked_payload(("grinders", 4, "/g"))

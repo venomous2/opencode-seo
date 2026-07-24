@@ -3,6 +3,44 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.18.0] - 2026-07-24
+
+SEO depth: priority scoring, honest forecasting, change impact.
+
+### Added
+- **Priority scoring in the recommendation store** — every recommendation
+  now carries a computed `priority` (impact × confidence; ×1.25 when
+  auto-fixable; +10% per re-raise capped at +50%). When evidence carries an
+  `est_monthly_clicks` value, a log-scaled value impact (100/mo → 3,
+  1000/mo → 4) can outrank the severity base. Deterministic, explainable,
+  computed on read so it never goes stale; `list --sort priority|severity`
+- **`seo_forecast.py`** — click forecasting with the assumptions printed in
+  the output: volume × position-CTR (curve included), low/expected/high
+  band (0.6×/1.4×), flat `--scale` discount for feature-heavy SERPs, and an
+  explicit "scenario planning, not a promise" honesty block. Keywords come
+  from `--keywords` (billed volume pull) or the latest drift snapshot
+  (free); `--snapshot` saves the scenario into drift
+- **`impact_report.py`** — joins completed recommendations to the drift
+  snapshots bracketing each completion: position movement for keyword
+  fixes, URL-level average movement for page fixes, verdicts
+  improved/no_change/worse/insufficient_data, all labelled
+  "association, not causation"
+- **watch now captures search volumes** in ranking snapshots and attaches
+  `est_monthly_searches`/`est_monthly_clicks` (volume × CTR at the lost
+  position) to rank-loss recommendations — so the most valuable losses
+  float to the top of the queue automatically
+- Dashboard top-actions table shows the priority score and the
+  clicks-at-stake when known; briefing skill uses the priority order and
+  can cite forecast/impact reports
+- 10 new tests (182 total)
+
+### Design note
+Forecasting was the feature most likely to break the suite's no-hype rule,
+so the model wears its workings on the outside: the exact CTR curve, the
+band, and what is *not* modelled (SERP features, brand intent, seasonality,
+revenue) ship in every response. Numbers a client can interrogate beat
+numbers a client must trust.
+
 ## [0.17.0] - 2026-07-24
 
 Watch — scheduled monitoring that feeds the stores.

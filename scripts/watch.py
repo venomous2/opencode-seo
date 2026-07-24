@@ -46,6 +46,7 @@ import event_log  # noqa: E402
 import project_memory  # noqa: E402
 import recommend_store  # noqa: E402
 import rule_engine  # noqa: E402
+import seo_forecast  # noqa: E402
 import seo_lint  # noqa: E402
 from site_crawler import fetch  # noqa: E402
 
@@ -103,7 +104,7 @@ def _ai_visibility(domain: str, brand: str, prompts: str, location: str,
 # ---------------------------------------------------------------------------
 
 def rank_items(payload: dict[str, Any]) -> list[dict[str, Any]]:
-    """Normalise a `ranked` response into [{keyword, position, url}]."""
+    """Normalise a `ranked` response into [{keyword, position, url, ...}]."""
     items = []
     for result in payload.get("result") or []:
         for item in (result or {}).get("items") or []:
@@ -115,9 +116,15 @@ def rank_items(payload: dict[str, Any]) -> list[dict[str, Any]]:
                 or serp_item.get("rank_group")
             url = item.get("url") or serp_item.get("url") \
                 or element.get("check_url") or ""
-            if keyword and isinstance(position, (int, float)):
-                items.append({"keyword": keyword,
-                              "position": int(position), "url": url})
+            if not (keyword and isinstance(position, (int, float))):
+                continue
+            entry: dict[str, Any] = {"keyword": keyword,
+                                     "position": int(position), "url": url}
+            info = (item.get("keyword_data") or {}).get("keyword_info") or {}
+            volume = item.get("search_volume") or info.get("search_volume")
+            if isinstance(volume, (int, float)):
+                entry["search_volume"] = int(volume)
+            items.append(entry)
     return items
 
 
@@ -218,6 +225,13 @@ def check_rankings(domain: str, location: str, language: str, limit: int,
                    "before it leaves page one entirely.")
             fix = ("Refresh the ranking page: search intent may have "
                    "shifted, or a competitor improved their coverage.")
+        evidence: dict[str, Any] = {"keyword": loss["keyword"],
+                                    "was": loss["was"], "now": loss["now"]}
+        volume = old_map[loss["keyword"]].get("search_volume")
+        if isinstance(volume, (int, float)) and volume > 0:
+            evidence["est_monthly_searches"] = int(volume)
+            evidence["est_monthly_clicks"] = round(
+                volume * seo_forecast.ctr(loss["was"]))
         recommend_store.raise_rec(domain, {
             "url": (old_map[loss["keyword"]].get("url") or ""),
             "source": "skill:watch",
@@ -228,8 +242,7 @@ def check_rankings(domain: str, location: str, language: str, limit: int,
             "finding": finding,
             "why": why,
             "fix": fix,
-            "evidence": {"keyword": loss["keyword"], "was": loss["was"],
-                         "now": loss["now"]},
+            "evidence": evidence,
         })
 
     recovered = 0
