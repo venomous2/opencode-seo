@@ -10,6 +10,7 @@ Usage:
     python scripts/seo_lint.py --dir ./dist --ext .html
     python scripts/seo_lint.py --url U --min-score 80        # CI gate
     python scripts/seo_lint.py --url U --format text
+    python scripts/seo_lint.py --url U --save                # persist findings
 
 Exit codes: 0 = lint ran and every page passed the gate (if given),
             1 = lint error or a page scored below --min-score.
@@ -26,6 +27,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent))
 
+import recommend_store  # noqa: E402
 import rule_engine  # noqa: E402
 from site_crawler import PageParser, fetch  # noqa: E402
 
@@ -114,8 +116,9 @@ def parse_html(html_text: str, url: str = "") -> dict[str, Any]:
     }
 
 
-def lint_pages(pages: list[dict[str, Any]], rules: list[dict[str, Any]],
-               category: str | None, local: bool = False) -> list[dict[str, Any]]:
+def filter_rules(rules: list[dict[str, Any]], category: str | None,
+                 local: bool = False) -> list[dict[str, Any]]:
+    """The rule subset a lint run actually evaluates."""
     if category:
         rules = [r for r in rules if r["category"] == category]
     if local:
@@ -124,6 +127,12 @@ def lint_pages(pages: list[dict[str, Any]], rules: list[dict[str, Any]],
         rules = [r for r in rules
                  if r["detect"]["field"] != "url"
                  and not r["detect"]["field"].startswith("security_")]
+    return rules
+
+
+def lint_pages(pages: list[dict[str, Any]], rules: list[dict[str, Any]],
+               category: str | None, local: bool = False) -> list[dict[str, Any]]:
+    rules = filter_rules(rules, category, local)
     results = []
     for page in pages:
         outcome = rule_engine.run(page, rules)
@@ -165,6 +174,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--min-score", type=int,
                         help="exit 1 if any page scores below this (CI gate)")
     parser.add_argument("--format", choices=["json", "text"], default="json")
+    parser.add_argument("--save", action="store_true",
+                        help="persist findings to the recommendation store "
+                             "(raises new/ongoing issues, resolves fixed ones)")
+    parser.add_argument("--domain",
+                        help="domain for --save (default: URL host, or "
+                             "'local' for files)")
     parser.add_argument("--timeout", type=int, default=20)
     args = parser.parse_args(argv)
 
@@ -238,10 +253,30 @@ def main(argv: list[str] | None = None) -> int:
 
     results = lint_pages(pages, rules, args.category, local=not args.url)
 
+    store_report = None
+    if args.save:
+        if args.domain:
+            domain = args.domain.strip().lower()
+        elif args.url:
+            domain = urllib.parse.urlparse(args.url).netloc.lower()
+        else:
+            domain = "local"
+        run_rules = filter_rules(rules, args.category, local=not args.url)
+        store_report = recommend_store.save_lint_results(domain, results,
+                                                         run_rules)
+
     if args.format == "text":
         print(render_text(results))
+        if store_report:
+            print(f"\nstore: {store_report['raised']} finding(s) saved, "
+                  f"{store_report['resolved']} resolved, "
+                  f"{store_report['open_total']} open "
+                  f"(domain: {store_report['domain']})")
     else:
-        print(json.dumps({"pages": results}, indent=2, ensure_ascii=False))
+        output: dict[str, Any] = {"pages": results}
+        if store_report:
+            output["store"] = store_report
+        print(json.dumps(output, indent=2, ensure_ascii=False))
 
     if args.min_score is not None:
         failures = [r for r in results if r["score"] < args.min_score]

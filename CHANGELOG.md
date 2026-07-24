@@ -3,6 +3,37 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.15.0] - 2026-07-24
+
+Recommendation store — findings get a status lifecycle.
+
+### Added
+- **`recommend_store.py`** — per-domain, append-only event log of
+  recommendations (`~/.config/opencode/seo-suite/recommendations/<domain>.jsonl`).
+  Every finding — from the rule engine, an audit skill, or a workflow — is a
+  record with stable id, severity, confidence, evidence, fix guidance,
+  `auto_fixable` flag and a status: `open → accepted → done`, plus `ignored`
+  (stays ignored, keeps counting) and `resolved` (auto). Re-raising a done
+  issue reopens it as a regression; replaying the log gives full history
+  (`Recommended in January → ignored → re-raised → accepted → done`).
+  CLI: `add` (stdin/--file), `list`, `set`, `get`, `summary`, `history`,
+  `domains`
+- **`seo_lint.py --save [--domain]`** — persists a lint run: raises every
+  finding, auto-resolves previously-raised rules that now pass (only among
+  rules that actually ran, so partial/category runs never resolve what they
+  didn't check), and marks rules carrying a `fix.patch` as `auto_fixable`
+- `workflow-site-audit` reads outstanding recommendations in Phase 0 (so
+  repeat audits report fixed/ongoing/regressed) and saves lint findings in
+  Phase 3; `seo-task-generator` accepts the store's open recommendations as
+  input and marks accepted tasks back in the store
+- 12 new tests (153 total)
+
+### Design note
+This is the contract layer for everything actionable in the suite: one
+machine-readable queue that task generation, monitoring and (later) the
+project dashboard all read — instead of every skill emitting prose that
+nothing can aggregate.
+
 ## [0.14.0] - 2026-07-23
 
 JavaScript/SPA rendering — with zero new dependencies.

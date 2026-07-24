@@ -18,6 +18,10 @@ live pulls in parallel where possible, then synthesizes.
 
 1. `python scripts/seo_config.py status` — DataForSEO must be READY; note Google tier.
 2. Load project memory if present: `python scripts/project_memory.py`.
+3. Check for outstanding recommendations from previous audits:
+   `python scripts/recommend_store.py list --domain <domain>` — the final
+   report should mark these as fixed / ongoing / regressed rather than
+   presenting them as new findings.
 3. Fetch the homepage HTML (webfetch) to detect industry, CMS, and rendering
    (check for empty `<div id="root">` SPA shells).
 4. **Discover the real page set first**: fetch /sitemap.xml (or run
@@ -101,7 +105,18 @@ one-line "why it matters".
 echo '{"scores": {"technical": X, "content": X, "authority": X, "cwv": X, "ai_search": X}, "rankings": [...], "backlinks": {"referring_domains": N}}' | python scripts/drift_store.py save --domain <domain>
 ```
 
-5. Render both client HTML versions:
+5. Persist the deterministic findings so the next audit tracks progress
+   instead of repeating itself — lint the key pages with `--save`:
+
+```
+python scripts/seo_lint.py --url <key-page> --save --domain <domain>
+```
+
+   New findings become `open`; anything fixed since last time is marked
+   `resolved` automatically. Close items the user acts on with
+   `python scripts/recommend_store.py set --domain <domain> --id <id> --status done`.
+
+6. Render both client HTML versions:
    `python scripts/report_build.py SEO-AUDIT-<domain>-<date>.md` and the
    same command with `--onepager` for the executive one-pager.
 

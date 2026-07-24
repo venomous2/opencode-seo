@@ -56,6 +56,7 @@ score) so the orchestrator can synthesize a 0-100 site score.
 | `cache.py` | Disk response cache with per-endpoint TTLs |
 | `cost_ledger.py` | JSONL ledger of every billed DataForSEO call |
 | `drift_store.py` | Timestamped per-domain SEO snapshots + compare |
+| `recommend_store.py` | Per-domain recommendation store (append-only event log): every finding gets a status lifecycle (open/accepted/done/ignored/resolved) so re-audits track progress instead of repeating advice |
 | `site_crawler.py` | Built-in concurrent crawler (v2): sitemap cross-check, near-duplicate detection, soft-404 probe, anchors, OG/Twitter, mixed content, security headers |
 | `link_graph.py` | Internal link graph analysis (orphans, hubs, depth, anchor quality) from crawl data |
 | `link_graph_render.py` | Visual radial link graph (branded SVG → HTML/PDF) |
@@ -97,6 +98,10 @@ skills keep everything that needs taste** (briefs, PR, strategy).
   `python scripts/cost_ledger.py report --by command`.
 - **Drift store**: audits and monthly checks save snapshots; `compare`
   turns two snapshots into a change report.
+- **Recommendation store**: `seo_lint --save` and audit skills append every
+  finding as a recommendation with a status lifecycle. Re-linting
+  auto-resolves fixed rules, reopens regressions, and leaves `ignored`
+  items alone — the shared queue that task generation and dashboards read.
 
 ## Project memory (`seo-project.yml`)
 

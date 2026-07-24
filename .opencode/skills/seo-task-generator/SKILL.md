@@ -11,8 +11,11 @@ Issues, or Asana.
 
 ## Inputs
 
-- Required: the findings — audit report, analysis output, or a path to a
-  prior results file (e.g., `SEO-AUDIT-*.md`)
+- Required: the findings — audit report, analysis output, a path to a
+  prior results file (e.g., `SEO-AUDIT-*.md`), or the persisted open
+  recommendations from `python scripts/recommend_store.py list --domain
+  <domain>` (each carries severity, why, fix, evidence and an `auto_fixable`
+  flag; skip findings the user has already marked `done` or `ignored`)
 - Optional: team roles available (dev, content, design), tracker format
   preference, project context from `seo-project.yml` via
   `python scripts/project_memory.py`
@@ -64,6 +67,11 @@ Presentation order:
 If the list exceeds ~15 tasks, write the full set to
 `TASKS-<domain>-<date>.md` and show only the summary table + P1 blocks in
 chat.
+
+When the findings came from the recommendation store, close the loop:
+mark accepted tasks with `python scripts/recommend_store.py set --domain
+<domain> --id <id> --status accepted` so the next audit sees the decision
+instead of re-raising the same finding.
 
 ## Output location
 

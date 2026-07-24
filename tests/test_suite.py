@@ -26,6 +26,7 @@ import link_graph  # noqa: E402
 import link_graph_render  # noqa: E402
 import log_analyzer  # noqa: E402
 import project_memory  # noqa: E402
+import recommend_store  # noqa: E402
 import report_build  # noqa: E402
 import report_pdf  # noqa: E402
 import report_publish  # noqa: E402
@@ -608,6 +609,135 @@ class TestDriftStore:
 
     def test_build_chart_specs_empty_when_nothing_comparable(self):
         assert drift_store.build_chart_specs({"notes": "x"}, {"notes": "y"}) == []
+
+
+# ---------------------------------------------------------------------------
+# recommend_store
+# ---------------------------------------------------------------------------
+
+def _rec(url="https://example.com/", finding="missing-title",
+         source="rule:missing-title", **overrides):
+    base = {"url": url, "source": source, "finding": finding,
+            "severity": "critical", "why": "w", "fix": "f"}
+    base.update(overrides)
+    return base
+
+
+class TestRecommendStore:
+    @pytest.fixture(autouse=True)
+    def temp_store(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(recommend_store, "RECS_DIR", tmp_path / "recs")
+        yield
+
+    def test_raise_and_list(self):
+        saved = recommend_store.raise_rec("example.com", _rec())
+        assert saved["status"] == "open" and saved["times_raised"] == 1
+        assert len(saved["id"]) == 12
+        recs = recommend_store.list_recs("example.com")
+        assert len(recs) == 1 and recs[0]["finding"] == "missing-title"
+
+    def test_reraise_dedups_and_counts(self):
+        recommend_store.raise_rec("example.com", _rec())
+        again = recommend_store.raise_rec("example.com", _rec())
+        assert again["times_raised"] == 2
+        assert len(recommend_store.list_recs("example.com")) == 1
+
+    def test_different_url_is_a_different_rec(self):
+        recommend_store.raise_rec("example.com", _rec(url="https://example.com/a"))
+        recommend_store.raise_rec("example.com", _rec(url="https://example.com/b"))
+        assert len(recommend_store.list_recs("example.com")) == 2
+
+    def test_status_flow_and_history(self):
+        saved = recommend_store.raise_rec("example.com", _rec())
+        recommend_store.set_status("example.com", saved["id"], "accepted")
+        recommend_store.set_status("example.com", saved["id"], "done",
+                                   note="deployed")
+        rec = recommend_store.get("example.com", saved["id"])
+        assert rec["status"] == "done" and rec["last_note"] == "deployed"
+        # closed items hidden by default, visible with include_closed
+        assert recommend_store.list_recs("example.com") == []
+        assert len(recommend_store.list_recs("example.com",
+                                             include_closed=True)) == 1
+        kinds = [e["event"] for e in
+                 recommend_store.history("example.com", saved["id"])]
+        assert kinds == ["raise", "status", "status"]
+
+    def test_done_rec_reopens_when_redetected(self):
+        saved = recommend_store.raise_rec("example.com", _rec())
+        recommend_store.set_status("example.com", saved["id"], "done")
+        again = recommend_store.raise_rec("example.com", _rec())
+        assert again["status"] == "open" and again["times_raised"] == 2
+
+    def test_ignored_rec_stays_ignored(self):
+        saved = recommend_store.raise_rec("example.com", _rec())
+        recommend_store.set_status("example.com", saved["id"], "ignored")
+        again = recommend_store.raise_rec("example.com", _rec())
+        assert again["status"] == "ignored" and again["times_raised"] == 2
+
+    def test_set_status_rejects_bad_values(self):
+        saved = recommend_store.raise_rec("example.com", _rec())
+        with pytest.raises(ValueError):
+            recommend_store.set_status("example.com", saved["id"], "banana")
+        assert recommend_store.set_status("example.com", "nope", "done") is None
+
+    def test_summary_counts(self):
+        recommend_store.raise_rec("example.com", _rec())
+        recommend_store.raise_rec("example.com",
+                                  _rec(finding="short-meta",
+                                       source="rule:short-meta",
+                                       severity="medium"))
+        summary = recommend_store.summary("example.com")
+        assert summary["total"] == 2 and summary["actionable"] == 2
+        assert summary["actionable_by_severity"]["critical"] == 1
+        assert summary["actionable_by_severity"]["medium"] == 1
+
+    def test_save_lint_results_resolves_fixed_findings(self):
+        rules = rule_engine.load_rules(category="metadata")
+        failing = seo_lint.lint_pages(
+            [{"url": "https://example.com/", "title": "",
+              "meta_description": "x" * 100}], rules, None)
+        assert failing[0]["findings"], "fixture should fail missing-title"
+        first = recommend_store.save_lint_results("example.com", failing, rules)
+        assert first["raised"] >= 1 and first["resolved"] == 0
+
+        passing = seo_lint.lint_pages(
+            [{"url": "https://example.com/", "title": "A proper title",
+              "meta_description": "x" * 100}], rules, None)
+        second = recommend_store.save_lint_results("example.com", passing, rules)
+        assert second["resolved"] >= 1
+        rec = recommend_store.list_recs("example.com", status="resolved")
+        assert any(r["finding"] == "missing-title" for r in rec)
+
+    def test_resolution_only_touches_rules_that_ran(self):
+        # an open rec from a rule outside this run must survive
+        recommend_store.raise_rec(
+            "example.com",
+            _rec(finding="no-https", source="rule:no-https",
+                 url="https://example.com/"))
+        rules = rule_engine.load_rules(category="metadata")
+        failing = seo_lint.lint_pages(
+            [{"url": "https://example.com/", "title": ""}], rules, None)
+        recommend_store.save_lint_results("example.com", failing, rules)
+        recs = recommend_store.list_recs("example.com")
+        assert any(r["finding"] == "no-https" and r["status"] == "open"
+                   for r in recs)
+
+    def test_lint_save_cli_persists(self, tmp_path, monkeypatch, capsys):
+        page = tmp_path / "p.html"
+        page.write_text("<html><head></head><body><h1>Hi</h1></body></html>",
+                        encoding="utf-8")
+        rc = seo_lint.main(["--file", str(page), "--save",
+                            "--domain", "example.com"])
+        assert rc == 0
+        out = json.loads(capsys.readouterr().out)
+        assert out["store"]["domain"] == "example.com"
+        assert out["store"]["raised"] >= 1
+        assert recommend_store.summary("example.com")["actionable"] >= 1
+
+    def test_domains_lists_known_stores(self):
+        recommend_store.raise_rec("example.com", _rec())
+        recommend_store.raise_rec("other.co.uk", _rec())
+        assert recommend_store.domains() == ["example.com", "other.co.uk"]
 
 
 # ---------------------------------------------------------------------------
