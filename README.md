@@ -3,7 +3,7 @@
 [![CI](https://github.com/venomous2/opencode-seo/actions/workflows/ci.yml/badge.svg)](https://github.com/venomous2/opencode-seo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-182%20passing-brightgreen)](tests)
-[![Rules](https://img.shields.io/badge/rules-26%20self--testing-00E0BA)](rules)
+[![Rules](https://img.shields.io/badge/rules-54%20self--testing-00E0BA)](rules)
 
 **An AI-native SEO platform for OpenCode.** Ask "why has my traffic dropped?", "what should we publish next?", "how do we improve AI visibility?" — and get evidence-backed answers, fixes, and client-ready reports, powered by live [DataForSEO](https://dataforseo.com) data and a deterministic rule engine that works identically across all [OpenRouter.ai](https://openrouter.ai/) models.
 
@@ -19,7 +19,7 @@ Inspired by [`AgriciDaniel/claude-seo`](https://github.com/AgriciDaniel/claude-s
 - [Install](#install)
 - [Quick start](#quick-start)
 - [Sample output](#sample-output)
-- [The skill map](#the-skill-map-82-skills)
+- [The skill map](#the-skill-map-87-skills)
 - [Project memory](#project-memory)
 - [The data layer](#the-data-layer)
 - [Architecture](#architecture)
@@ -27,15 +27,20 @@ Inspired by [`AgriciDaniel/claude-seo`](https://github.com/AgriciDaniel/claude-s
 - [Requirements](#requirements)
 - [License](#license)
 
+> **New user?** Start with [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md)
+> (15 minutes to your first audit + monitoring), then keep
+> [docs/USER-GUIDE.md](docs/USER-GUIDE.md) — every command, the stores,
+> and a page of tips — by your side.
+
 ## Why this suite
 
 - **Live data, not guesses.** Every volume, ranking, and backlink number comes from the DataForSEO API. Skills refuse to fabricate metrics.
-- **A deterministic core.** 26 SEO checks as YAML rules with embedded tests, plus an 11-criterion citation-readiness scorer — all evaluated in pure Python with zero model calls, so results are identical across all 400+ OpenCode models. Lint any page, gate your CI with `--min-score`, and apply mechanical fixes with the fix engine.
+- **A deterministic core.** 54 SEO checks as YAML rules with embedded tests, plus an 11-criterion citation-readiness scorer — all evaluated in pure Python with zero model calls, so results are identical across all 400+ OpenCode models. Lint any page, gate your CI with `--min-score`, and apply mechanical fixes with the fix engine.
 - **Three layers.** Atomic skills for focused tasks → workflow skills that chain them for end-to-end jobs → project memory (`seo-project.yml` or per-client profiles) that keeps outputs consistent.
 - **AI-search first.** Ten skills for AI Overviews, AI Mode, ChatGPT, Perplexity, Gemini, and LLM citation readiness — evidence-based, no hype.
 - **Optional Google tier.** Add a Google API key / service account for real CrUX field data, Search Console queries, and GA4 organic traffic when you have them.
 - **British English by default.** All analysis, recommendations, and reports are written in British English unless you ask for another variant.
-- **Monitoring built in.** Drift snapshots, a DataForSEO cost ledger, and response caching turn one-off audits into a repeatable system.
+- **Monitoring built in.** Scheduled watch runs (rankings, lint, competitors), a recommendation queue with a status lifecycle, drift snapshots, and a morning `/briefing` turn one-off audits into a system that keeps working between sessions.
 - **Client-ready output.** White-label HTML reports with charts, an executive one-pager, and before/after comparisons — one command away from any markdown report.
 
 ## Who it's for
@@ -77,7 +82,7 @@ Then **restart OpenCode** and set up DataForSEO credentials (the installer offer
 python scripts/seo_config.py status   # verify the data layer
 ```
 
-Full guide: [INSTALL.md](INSTALL.md) · Credentials: [docs/DATAFORSEO-SETUP.md](docs/DATAFORSEO-SETUP.md) · Google tiers: [docs/GOOGLE-APIS.md](docs/GOOGLE-APIS.md)
+Full guide: [INSTALL.md](INSTALL.md) · **Then:** [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) · Reference: [docs/USER-GUIDE.md](docs/USER-GUIDE.md) · Credentials: [docs/DATAFORSEO-SETUP.md](docs/DATAFORSEO-SETUP.md) · Google tiers: [docs/GOOGLE-APIS.md](docs/GOOGLE-APIS.md)
 
 ## Quick start
 
@@ -99,7 +104,7 @@ Or just talk naturally — "audit my site", "why don't I rank for X", "optimize 
 Real, unedited `seo_lint.py --url <site> --format text` output (rule engine, deterministic):
 
 ```
-https://example.com  —  score 70/100  (6 findings, 26 rules)
+https://example.com  —  score 70/100  (6 findings, 54 rules)
   ! high     multiple-h1 [actual: 3]
            why: Multiple H1s dilute the page's main topic, leaving search
            engines and assistive technology to guess which heading

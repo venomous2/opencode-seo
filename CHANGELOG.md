@@ -3,6 +3,25 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.18.1] - 2026-07-24
+
+User-facing documentation.
+
+### Added
+- **`docs/GETTING-STARTED.md`** — the new-user journey: prerequisites,
+  install, credentials, a free 30-second first insight (`seo_lint --save`),
+  first briefing, first audit, project memory, scheduling watch, and the
+  daily/weekly rhythm. Written for people, not agents
+- **`docs/USER-GUIDE.md`** — the full reference: the mental model
+  (engine/skills/stores), all 11 commands with cost guidance, the five
+  stores with one-liners, queue workflow, forecasting and impact, reports,
+  agency mode, CI gates, tips and troubleshooting
+
+### Fixed
+- README staleness: rules badge and rule counts (26 → 54), skill-map TOC
+  anchor, sample-output rule count, and the monitoring bullet now describes
+  watch/briefing; INSTALL.md and README both point at the new guides
+
 ## [0.18.0] - 2026-07-24
 
 SEO depth: priority scoring, honest forecasting, change impact.

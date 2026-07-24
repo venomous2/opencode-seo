@@ -58,6 +58,10 @@ Config and skills load at startup — quit and relaunch OpenCode, then:
 /site-audit https://your-site.com
 ```
 
+**Next:** [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) walks your
+first 15 minutes (first check, first audit, monitoring on), and
+[docs/USER-GUIDE.md](docs/USER-GUIDE.md) is the full reference with tips.
+
 ## Validate the installation
 
 ```bash

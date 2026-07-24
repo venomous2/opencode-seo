@@ -13,7 +13,8 @@ This repo is an OpenCode skill pack. If you are an agent working inside it:
   dashboard / watch (monitoring) / forecast + impact / crawlers /
   report builder)
 - `tests/` — pytest suite (offline; `python -m pytest tests/ -q`)
-- `docs/` — setup and architecture docs
+- `docs/` — user guides (GETTING-STARTED, USER-GUIDE), setup and
+  architecture docs
 - `validate.py` — structure validator; run after adding/changing skills
 
 ## Conventions
