@@ -4,13 +4,13 @@ This repo is an OpenCode skill pack. If you are an agent working inside it:
 
 ## Layout
 
-- `.opencode/skills/<name>/SKILL.md` — 81 skills (frontmatter: `name` + `description` only)
+- `.opencode/skills/<name>/SKILL.md` — 87 skills (frontmatter: `name` + `description` only)
 - `.opencode/agents/*.md` — 4 subagent-mode specialists
-- `.opencode/commands/*.md` — 8 slash commands (`$ARGUMENTS` = user input)
+- `.opencode/commands/*.md` — 11 slash commands (`$ARGUMENTS` = user input)
 - `.opencode/plugins/*.ts` — optional OpenCode plugin (project-memory nudge)
 - `scripts/` — Python data layer (DataForSEO mandatory, Google optional,
-  plus cache / cost ledger / drift store / recommendation store / crawlers /
-  report builder)
+  plus cache / cost ledger / drift store / recommendation store / event log /
+  dashboard / crawlers / report builder)
 - `tests/` — pytest suite (offline; `python -m pytest tests/ -q`)
 - `docs/` — setup and architecture docs
 - `validate.py` — structure validator; run after adding/changing skills

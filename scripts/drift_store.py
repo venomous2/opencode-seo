@@ -37,6 +37,7 @@ from pathlib import Path
 from typing import Any
 
 from seo_config import SUITE_DIR
+import event_log
 
 DRIFT_DIR = SUITE_DIR / "drift"
 
@@ -59,6 +60,10 @@ def save(domain: str, snapshot: dict[str, Any]) -> Path:
     snapshot["_saved_at"] = ts
     path.write_text(json.dumps(snapshot, indent=2, ensure_ascii=False),
                     encoding="utf-8")
+    sections = [k for k in snapshot if not k.startswith("_")]
+    event_log.log(domain, "snapshot_saved",
+                  f"Snapshot saved ({', '.join(sections) or 'empty'})",
+                  {"ts": ts, "sections": sections})
     return path
 
 

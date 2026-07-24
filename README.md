@@ -2,12 +2,12 @@
 
 [![CI](https://github.com/venomous2/opencode-seo/actions/workflows/ci.yml/badge.svg)](https://github.com/venomous2/opencode-seo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-71%20passing-brightgreen)](tests)
+[![Tests](https://img.shields.io/badge/tests-163%20passing-brightgreen)](tests)
 [![Rules](https://img.shields.io/badge/rules-26%20self--testing-00E0BA)](rules)
 
 **An AI-native SEO platform for OpenCode.** Ask "why has my traffic dropped?", "what should we publish next?", "how do we improve AI visibility?" — and get evidence-backed answers, fixes, and client-ready reports, powered by live [DataForSEO](https://dataforseo.com) data and a deterministic rule engine that works identically across all [OpenRouter.ai](https://openrouter.ai/) models.
 
-Under the bonnet: 82 skills, 4 specialist agents, 8 slash commands, 26 self-testing rules, a fix engine, and a citation scorer — covering technical SEO, content strategy, AI search (GEO/AEO), competitive research, local SEO, and e-commerce. Google APIs (Search Console, GA4, PageSpeed, CrUX) are optional enrichment tiers.
+Under the bonnet: 87 skills, 4 specialist agents, 11 slash commands, 54 self-testing rules, a fix engine, and a citation scorer — covering technical SEO, content strategy, AI search (GEO/AEO), competitive research, local SEO, and e-commerce. Google APIs (Search Console, GA4, PageSpeed, CrUX) are optional enrichment tiers.
 
 Inspired by [`AgriciDaniel/claude-seo`](https://github.com/AgriciDaniel/claude-seo) — an original re-implementation for OpenCode, modified and extended by Lee Beirne (DataForSEO-mandatory data layer, three-layer architecture, project memory). All skill content is original; credit for the underlying concept goes to Agrici Daniel.
 
@@ -125,7 +125,7 @@ SKIP   missing-article-schema (low)
   reason: missing required values: title (pass --base-url for local files)
 ```
 
-## The skill map (81 skills)
+## The skill map (87 skills)
 
 | Collection | Skills |
 |---|---|
@@ -139,7 +139,7 @@ SKIP   missing-article-schema (low)
 | **Competitive** | `competitor-audit`, `serp-analysis`, `keyword-gap`, `backlink-opportunity-planner`, `content-opportunity-finder`, `topical-coverage-comparison` |
 | **Local & Commerce** | `local-seo`, `gbp-advisor`, `ecommerce-seo`, `product-page-optimizer`, `category-page-optimizer` |
 | **Growth & PR** | `digital-pr-planner`, `programmatic-seo`, `news-seo`, `video-seo`, `parasite-seo-check` |
-| **Monitoring** | `seo-drift` |
+| **Monitoring** | `seo-drift`, `seo-briefing` |
 | **Automation** | `seo-report-writer`, `seo-project-planner`, `seo-task-generator`, `seo-checklist-generator`, `seo-roadmap-builder` |
 
 ## Project memory

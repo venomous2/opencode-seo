@@ -5,13 +5,13 @@ and commands.
 
 ## Layer 1 — Skills (`.opencode/skills/<name>/SKILL.md`)
 
-71 skills in three tiers:
+87 skills in three tiers:
 
 **Orchestrator** — `seo-suite` is the entry point. It detects user intent,
 verifies the data layer (`seo_config.py status`), loads project memory, and
 routes to a workflow or atomic skill.
 
-**Workflows (4)** — chain atomic skills and dispatch specialist agents for
+**Workflows (6)** — chain atomic skills and dispatch specialist agents for
 end-to-end jobs:
 
 | Workflow | Chains |
@@ -20,8 +20,10 @@ end-to-end jobs:
 | `workflow-new-content` | keyword-research → serp-analysis → competitor outlines → content-brief → AEO layer → checklist |
 | `workflow-ecommerce-launch` | keyword mapping → marketplace intel → category/product specs → schema → supporting content |
 | `workflow-content-refresh` | inventory → decay detection → overlap scan → triage → refresh specs → queue |
+| `workflow-migration` | pre-launch baselines + redirect map → launch-day checks → post-launch drift monitoring |
+| `workflow-quarterly-review` | drift diffs + GSC/GA4 trends + decay triage → wins/losses narrative → next-quarter plan |
 
-**Atomic skills (66)** — each does one focused job. Grouped into 8
+**Atomic skills (80)** — each does one focused job. Grouped into 8
 collections (Foundation, Content Strategy, Content Optimization, Technical,
 AI Search, Competitive, Local & Commerce, Automation).
 
@@ -57,6 +59,8 @@ score) so the orchestrator can synthesize a 0-100 site score.
 | `cost_ledger.py` | JSONL ledger of every billed DataForSEO call |
 | `drift_store.py` | Timestamped per-domain SEO snapshots + compare |
 | `recommend_store.py` | Per-domain recommendation store (append-only event log): every finding gets a status lifecycle (open/accepted/done/ignored/resolved) so re-audits track progress instead of repeating advice |
+| `event_log.py` | Per-domain event timeline (JSONL): findings raised/resolved, lint saves, drift snapshots, manual notes — the chronological feed behind the dashboard and briefing |
+| `project_dashboard.py` | Mission-control HTML dashboard: aggregates recommendation queue + drift health + event timeline + cost ledger into one branded page via report_build |
 | `site_crawler.py` | Built-in concurrent crawler (v2): sitemap cross-check, near-duplicate detection, soft-404 probe, anchors, OG/Twitter, mixed content, security headers |
 | `link_graph.py` | Internal link graph analysis (orphans, hubs, depth, anchor quality) from crawl data |
 | `link_graph_render.py` | Visual radial link graph (branded SVG → HTML/PDF) |
@@ -102,6 +106,10 @@ skills keep everything that needs taste** (briefs, PR, strategy).
   finding as a recommendation with a status lifecycle. Re-linting
   auto-resolves fixed rules, reopens regressions, and leaves `ignored`
   items alone — the shared queue that task generation and dashboards read.
+- **Event log**: data-layer modules append timeline events (finding raised,
+  status changed, lint saved, snapshot saved) as they work. `seo-briefing`
+  and `project_dashboard.py` render it; change-impact analysis joins it to
+  drift diffs later.
 
 ## Project memory (`seo-project.yml`)
 

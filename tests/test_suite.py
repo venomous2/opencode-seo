@@ -20,11 +20,13 @@ import citation_score  # noqa: E402
 import cost_ledger  # noqa: E402
 import dfs_client  # noqa: E402
 import drift_store  # noqa: E402
+import event_log  # noqa: E402
 import indexnow  # noqa: E402
 import ai_visibility  # noqa: E402
 import link_graph  # noqa: E402
 import link_graph_render  # noqa: E402
 import log_analyzer  # noqa: E402
+import project_dashboard  # noqa: E402
 import project_memory  # noqa: E402
 import recommend_store  # noqa: E402
 import report_build  # noqa: E402
@@ -556,6 +558,7 @@ class TestDriftStore:
     @pytest.fixture(autouse=True)
     def temp_drift(self, monkeypatch, tmp_path):
         monkeypatch.setattr(drift_store, "DRIFT_DIR", tmp_path / "drift")
+        monkeypatch.setattr(event_log, "EVENTS_DIR", tmp_path / "events")
         yield
 
     def test_save_and_list(self):
@@ -627,6 +630,7 @@ class TestRecommendStore:
     @pytest.fixture(autouse=True)
     def temp_store(self, monkeypatch, tmp_path):
         monkeypatch.setattr(recommend_store, "RECS_DIR", tmp_path / "recs")
+        monkeypatch.setattr(event_log, "EVENTS_DIR", tmp_path / "events")
         yield
 
     def test_raise_and_list(self):
@@ -738,6 +742,139 @@ class TestRecommendStore:
         recommend_store.raise_rec("example.com", _rec())
         recommend_store.raise_rec("other.co.uk", _rec())
         assert recommend_store.domains() == ["example.com", "other.co.uk"]
+
+
+# ---------------------------------------------------------------------------
+# event_log
+# ---------------------------------------------------------------------------
+
+class TestEventLog:
+    @pytest.fixture(autouse=True)
+    def temp_events(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(event_log, "EVENTS_DIR", tmp_path / "events")
+        monkeypatch.setattr(recommend_store, "RECS_DIR", tmp_path / "recs")
+        monkeypatch.setattr(drift_store, "DRIFT_DIR", tmp_path / "drift")
+        yield
+
+    def test_log_and_list(self):
+        event_log.log("example.com", "note", "first")
+        event_log.log("example.com", "note", "second")
+        out = event_log.events("example.com")
+        assert [e["summary"] for e in out] == ["first", "second"]
+        assert all(e["type"] == "note" and e["ts"] for e in out)
+
+    def test_limit_type_and_since_filters(self):
+        event_log.log("example.com", "note", "a")
+        event_log.log("example.com", "lint_saved", "b")
+        future = int(time.time()) + 60
+        assert len(event_log.events("example.com", limit=1)) == 1
+        assert event_log.events("example.com", limit=1)[0]["summary"] == "b"
+        assert [e["summary"] for e in
+                event_log.events("example.com", type="note")] == ["a"]
+        assert event_log.events("example.com", since=future) == []
+
+    def test_log_never_raises(self, monkeypatch, tmp_path):
+        # EVENTS_DIR points at a regular file: mkdir must fail silently
+        blocker = tmp_path / "blocker"
+        blocker.write_text("x")
+        monkeypatch.setattr(event_log, "EVENTS_DIR", blocker)
+        event_log.log("example.com", "note", "swallowed")  # no exception
+
+    def test_domains(self):
+        event_log.log("b.co.uk", "note", "x")
+        event_log.log("a.com", "note", "x")
+        assert event_log.domains() == ["a.com", "b.co.uk"]
+
+    def test_data_layer_integrations(self):
+        # raise -> rec_raised once; re-raise while open -> no extra event
+        saved = recommend_store.raise_rec("example.com", _rec())
+        recommend_store.raise_rec("example.com", _rec())
+        types = [e["type"] for e in event_log.events("example.com")]
+        assert types == ["rec_raised"]
+        # status change -> rec_status; done then re-raise -> rec_reopened
+        recommend_store.set_status("example.com", saved["id"], "done")
+        recommend_store.raise_rec("example.com", _rec())
+        types = [e["type"] for e in event_log.events("example.com")]
+        assert types == ["rec_raised", "rec_status", "rec_reopened"]
+
+    def test_drift_save_logs_snapshot(self):
+        drift_store.save("example.com", {"scores": {"technical": 70}})
+        events = event_log.events("example.com", type="snapshot_saved")
+        assert len(events) == 1
+        assert "scores" in events[0]["summary"]
+
+
+# ---------------------------------------------------------------------------
+# project_dashboard
+# ---------------------------------------------------------------------------
+
+class TestProjectDashboard:
+    @pytest.fixture(autouse=True)
+    def temp_stores(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(recommend_store, "RECS_DIR", tmp_path / "recs")
+        monkeypatch.setattr(drift_store, "DRIFT_DIR", tmp_path / "drift")
+        monkeypatch.setattr(event_log, "EVENTS_DIR", tmp_path / "events")
+        self.tmp = tmp_path
+        yield
+
+    def _seed(self):
+        recommend_store.raise_rec(
+            "example.com",
+            _rec(finding="missing-title", source="rule:missing-title",
+                 severity="critical", why="No title tag"))
+        recommend_store.raise_rec(
+            "example.com",
+            _rec(finding="Merge grinder pages", source="skill:site-audit",
+                 severity="high", why="Cannibalisation"))
+        drift_store.save("example.com",
+                         {"scores": {"technical": 70, "content": 65,
+                                     "authority": 50, "cwv": 60,
+                                     "ai_search": 40}})
+        drift_store.save("example.com",
+                         {"scores": {"technical": 80, "content": 70,
+                                     "authority": 55, "cwv": 65,
+                                     "ai_search": 45}})
+
+    def test_overall_score_weighting(self):
+        snap = {"scores": {"technical": 100, "content": 100, "authority": 0,
+                           "cwv": 100, "ai_search": 100}}
+        assert project_dashboard.overall_score(snap) == 80.0
+        assert project_dashboard.overall_score({"scores": {}}) is None
+        assert project_dashboard.overall_score(
+            {"scores": {"technical": 50, "content": 100}}) == 75.0
+
+    def test_build_markdown_full(self):
+        self._seed()
+        markdown, meta = project_dashboard.build_markdown("example.com")
+        assert "## Top actions" in markdown
+        assert "Missing title" in markdown
+        assert "Merge grinder pages" in markdown
+        assert "## Recent activity" in markdown
+        assert '"type": "donut"' in markdown
+        assert meta["actionable"] == 2
+        assert meta["critical_open"] == 1
+        assert meta["snapshots"] == 2
+        assert meta["health"] == 66.8         # weighted blend of snapshot 2
+        assert meta["health_delta"] == 6.6    # up from 60.2
+
+    def test_build_markdown_empty_stores(self):
+        markdown, meta = project_dashboard.build_markdown("empty.com")
+        assert "No drift snapshots yet" in markdown
+        assert "queue is empty" in markdown
+        assert meta["health"] is None and meta["actionable"] == 0
+
+    def test_main_writes_html_and_md(self, monkeypatch, capsys):
+        self._seed()
+        monkeypatch.chdir(self.tmp)
+        rc = project_dashboard.main(["--domain", "example.com"])
+        assert rc == 0
+        out = json.loads(capsys.readouterr().out)
+        html = Path(out["html"])
+        assert html.is_file() and html.suffix == ".html"
+        assert Path(out["markdown"]).is_file()
+        page = html.read_text(encoding="utf-8")
+        assert "Project Dashboard" in page and "example.com" in page
+        assert "Missing title" in page
 
 
 # ---------------------------------------------------------------------------

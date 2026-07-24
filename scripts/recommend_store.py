@@ -58,6 +58,7 @@ from pathlib import Path
 from typing import Any
 
 from seo_config import SUITE_DIR
+import event_log
 
 RECS_DIR = SUITE_DIR / "recommendations"
 
@@ -203,6 +204,16 @@ def raise_rec(domain: str, rec: dict[str, Any]) -> dict[str, Any]:
         after["status"] = prior["status"]
         if prior["status"] in ("done", "resolved"):
             after["status"] = "open"
+    if prior is None:
+        event_log.log(domain, "rec_raised",
+                      f"[{after['severity']}] {after['finding']}"
+                      + (f" — {after['url']}" if after["url"] else ""),
+                      {"id": after["id"], "source": after["source"]})
+    elif after["status"] == "open" and prior["status"] in ("done", "resolved"):
+        event_log.log(domain, "rec_reopened",
+                      f"Regression: {after['finding']}"
+                      + (f" — {after['url']}" if after["url"] else ""),
+                      {"id": after["id"], "source": after["source"]})
     return after
 
 
@@ -215,7 +226,12 @@ def set_status(domain: str, rec_id: str, status: str,
         return None
     _append(domain, {"event": "status", "ts": int(time.time()),
                      "id": rec_id, "status": status, "note": note[:300]})
-    updated = dict(state[rec_id])
+    rec = state[rec_id]
+    event_log.log(domain, "rec_status",
+                  f"{rec['finding']} → {status}"
+                  + (f" ({note})" if note else ""),
+                  {"id": rec_id, "status": status})
+    updated = dict(rec)
     updated["status"] = status
     if note:
         updated["last_note"] = note
@@ -323,6 +339,13 @@ def save_lint_results(domain: str, results: list[dict[str, Any]],
         set_status(domain, rec["id"], "resolved",
                    note="no longer detected by seo_lint")
         resolved += 1
+
+    if raised or resolved:
+        event_log.log(domain, "lint_saved",
+                      f"Lint saved: {raised} finding(s), {resolved} resolved",
+                      {"raised": raised, "reopened": reopened,
+                       "resolved": resolved,
+                       "urls": len(linted_urls)})
 
     return {"domain": domain, "raised": raised, "reopened": reopened,
             "resolved": resolved,

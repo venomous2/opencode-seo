@@ -3,6 +3,37 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.16.0] - 2026-07-24
+
+Project home: event timeline, mission-control dashboard, morning briefing.
+
+### Added
+- **`event_log.py`** — per-domain JSONL timeline
+  (`~/.config/opencode/seo-suite/events/<domain>.jsonl`). The data layer
+  logs as it works: `rec_raised`, `rec_reopened` (regressions),
+  `rec_status`, `lint_saved`, `snapshot_saved`, plus manual `note`s via the
+  CLI. Best-effort by design — logging never breaks the caller
+- **`project_dashboard.py --domain <d>`** — the "mission control" page:
+  aggregates the recommendation queue, drift health (weighted pillar blend,
+  delta vs previous snapshot, trend line), event timeline, wins and 30-day
+  API spend into one branded standalone HTML file via `report_build.py`.
+  Actions first, charts second; writes `DASHBOARD-<domain>-<date>.md/.html`
+  to `$SEO_REPORTS_DIR/<domain>/`
+- **`seo-briefing` skill + `/briefing` command** (87 skills, 11 commands) —
+  the morning executive feed, entirely from local stores (zero API spend):
+  health + delta, needs attention, regressions, recent wins, today's top
+  3–5 actions, single best next step. Routed from `seo-suite`
+- Data-layer integrations: `recommend_store` logs raises/reopens/status
+  changes and lint saves; `drift_store` logs every snapshot
+- 10 new tests (163 total)
+
+### Design note
+The dashboard is an *output*, not an application: a generated HTML view
+over the stores, keeping the suite local-first and dependency-free. If a
+live app ever ships, it reads the same JSONL stores and nothing is thrown
+away. The event log is also the join table for Phase 4's change-impact
+analysis ("you fixed X → traffic +19%").
+
 ## [0.15.0] - 2026-07-24
 
 Recommendation store — findings get a status lifecycle.
