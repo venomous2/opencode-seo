@@ -61,6 +61,7 @@ score) so the orchestrator can synthesize a 0-100 site score.
 | `recommend_store.py` | Per-domain recommendation store (append-only event log): every finding gets a status lifecycle (open/accepted/done/ignored/resolved) so re-audits track progress instead of repeating advice |
 | `event_log.py` | Per-domain event timeline (JSONL): findings raised/resolved, lint saves, drift snapshots, manual notes — the chronological feed behind the dashboard and briefing |
 | `project_dashboard.py` | Mission-control HTML dashboard: aggregates recommendation queue + drift health + event timeline + cost ledger into one branded page via report_build |
+| `watch.py` | Scheduled monitoring bundle (daily/weekly profiles): lint → store, rankings diff → loss/recovery recommendations, competitor growth flags, backlinks + AI visibility into drift; `schedule` prints Task Scheduler/cron lines |
 | `site_crawler.py` | Built-in concurrent crawler (v2): sitemap cross-check, near-duplicate detection, soft-404 probe, anchors, OG/Twitter, mixed content, security headers |
 | `link_graph.py` | Internal link graph analysis (orphans, hubs, depth, anchor quality) from crawl data |
 | `link_graph_render.py` | Visual radial link graph (branded SVG → HTML/PDF) |

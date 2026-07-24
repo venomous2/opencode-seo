@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/venomous2/opencode-seo/actions/workflows/ci.yml/badge.svg)](https://github.com/venomous2/opencode-seo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-163%20passing-brightgreen)](tests)
+[![Tests](https://img.shields.io/badge/tests-172%20passing-brightgreen)](tests)
 [![Rules](https://img.shields.io/badge/rules-26%20self--testing-00E0BA)](rules)
 
 **An AI-native SEO platform for OpenCode.** Ask "why has my traffic dropped?", "what should we publish next?", "how do we improve AI visibility?" — and get evidence-backed answers, fixes, and client-ready reports, powered by live [DataForSEO](https://dataforseo.com) data and a deterministic rule engine that works identically across all [OpenRouter.ai](https://openrouter.ai/) models.

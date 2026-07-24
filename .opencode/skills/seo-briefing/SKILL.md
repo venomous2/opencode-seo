@@ -29,6 +29,13 @@ python scripts/event_log.py list --domain <domain> --limit 15
 If two or more drift snapshots exist, also
 `python scripts/drift_store.py compare --domain <domain>` for "what changed".
 
+**Freshness:** the feed is only as current as the stores. If the newest
+snapshot or event is more than a week old, say so and suggest
+`python scripts/watch.py --domain <domain> --profile weekly` to refresh
+(rankings diff, lint of key pages, competitor growth, backlinks) — and, for
+hands-off freshness, `python scripts/watch.py schedule --domain <domain>`
+prints the exact Task Scheduler / cron line to automate it.
+
 ## Process
 
 1. **Health** — overall score and delta vs the previous snapshot. No

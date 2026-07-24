@@ -23,6 +23,14 @@ month?" with stored evidence instead of memory and guesswork.
 - Immediately before and after migrations, redesigns, and major releases
 - After a confirmed Google core update finishes rolling out
 
+**Automated cadence:** `python scripts/watch.py --domain <domain> --profile
+weekly` snapshots rankings + backlinks, lints key pages into the
+recommendation store, and flags ranking losses and competitor growth as
+recommendations — the event log entry feeds the morning briefing.
+`python scripts/watch.py schedule --domain <domain>` prints the exact
+Task Scheduler / cron line to run it hands-off. Use this skill for the
+manual deep-dive; use watch for the routine.
+
 ## Data pulls (capture mode)
 
 Run live pulls in parallel, then assemble one JSON snapshot:

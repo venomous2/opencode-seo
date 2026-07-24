@@ -3,6 +3,44 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.17.0] - 2026-07-24
+
+Watch — scheduled monitoring that feeds the stores.
+
+### Added
+- **`watch.py`** — one command runs a monitoring bundle for a domain,
+  writing everything into the local stores so the briefing and dashboard
+  stay fresh. Profiles: `daily` (lint + rankings, cheap) and `weekly`
+  (+ backlinks, competitors, AI visibility). Flags fall back to
+  `seo-project.yml` (competitors, brand); `--dry-run` lists what would run
+  and calls nothing
+- **Rankings diff → recommendations**: fresh DataForSEO rankings are
+  snapshotted to drift; keywords that were top-20 and vanished or dropped
+  5+ positions become `skill:watch` recommendations (severity by magnitude,
+  capped at 10/run), and recoveries automatically resolve earlier loss
+  recommendations
+- **Competitor growth flags**: each competitor's rankings are snapshotted
+  (namespaced `competitor-<domain>`); a competitor gaining 3+ new rankings
+  raises one deduped recommendation with example keywords — the chat's
+  "competitor X published 17 new pages" alert, grounded in real data
+- **Lint on a cadence**: key pages are re-linted straight into the
+  recommendation store (`seo_lint` + `save_lint_results`), so regressions
+  reopen and fixed findings resolve themselves between audits
+- **`watch.py schedule`** — prints the exact Windows `schtasks` and cron
+  lines for the domain/profile. The OS does the scheduling; nothing daemons
+- Every run logs a `watch_completed` event (feeds the briefing) and reports
+  its own DataForSEO cost; per-check errors degrade to "data unavailable"
+  instead of aborting the run
+- `seo-briefing` suggests watch when stores are stale; `seo-drift`
+  defers routine cadence to watch
+- 9 new tests (172 total)
+
+### Design note
+No notification infrastructure was built: new findings land in the
+recommendation store and events on the timeline, so the "inbox" is simply
+the briefing/dashboard reading what watch put there — one queue, one
+timeline, zero extra moving parts.
+
 ## [0.16.0] - 2026-07-24
 
 Project home: event timeline, mission-control dashboard, morning briefing.

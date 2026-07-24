@@ -38,6 +38,7 @@ import seo_config  # noqa: E402
 import seo_fix  # noqa: E402
 import seo_lint  # noqa: E402
 import spa_detect  # noqa: E402
+import watch  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -875,6 +876,160 @@ class TestProjectDashboard:
         page = html.read_text(encoding="utf-8")
         assert "Project Dashboard" in page and "example.com" in page
         assert "Missing title" in page
+
+
+# ---------------------------------------------------------------------------
+# watch
+# ---------------------------------------------------------------------------
+
+def _ranked_payload(*rows):
+    """Simple-shape ranked response: (keyword, position, url) rows."""
+    return {"result": [{"items": [
+        {"keyword": kw, "position": pos, "url": url} for kw, pos, url in rows
+    ]}]}
+
+
+class TestWatch:
+    @pytest.fixture(autouse=True)
+    def temp_stores(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(recommend_store, "RECS_DIR", tmp_path / "recs")
+        monkeypatch.setattr(drift_store, "DRIFT_DIR", tmp_path / "drift")
+        monkeypatch.setattr(event_log, "EVENTS_DIR", tmp_path / "events")
+        monkeypatch.setattr(watch, "_ai_visibility",
+                            lambda *a, **k: pytest.fail("offline"))
+        yield
+
+    def test_rank_items_simple_and_labs_shapes(self):
+        simple = _ranked_payload(("grinders", 4, "/g"))
+        labs = {"result": [{"items": [{
+            "keyword_data": {"keyword": "espresso"},
+            "ranked_serp_element": {"serp_item": {"rank_group": 7,
+                                                  "url": "/e"}}}]}]}
+        assert watch.rank_items(simple) == [
+            {"keyword": "grinders", "position": 4, "url": "/g"}]
+        assert watch.rank_items(labs) == [
+            {"keyword": "espresso", "position": 7, "url": "/e"}]
+        assert watch.rank_items({"result": []}) == []
+
+    def test_backlink_summary_shapes(self):
+        direct = {"result": [{"referring_domains": 120, "backlinks": 3400}]}
+        nested = {"result": [{"items": [{"referring_domains": 9,
+                                         "backlinks": 40}]}]}
+        assert watch.backlink_summary(direct) == {
+            "referring_domains": 120, "backlinks": 3400}
+        assert watch.backlink_summary(nested)["referring_domains"] == 9
+        assert watch.backlink_summary({"result": [{"other": 1}]}) == {}
+
+    def test_rankings_loss_rec_and_recovery(self, monkeypatch):
+        drift_store.save("example.com", {"rankings": [
+            {"keyword": "grinders", "position": 4, "url": "/g"},
+            {"keyword": "espresso", "position": 12, "url": "/e"},
+            {"keyword": "obscure", "position": 45, "url": "/o"}]})
+        # 'grinders' gone, 'espresso' slid 12 -> 18; 'obscure' ignored (>20)
+        monkeypatch.setattr(watch, "_dfs", lambda *a, **k: _ranked_payload(
+            ("espresso", 18, "/e"), ("new kw", 9, "/n")))
+        result, items = watch.check_rankings("example.com",
+                                             "United States", "English", 50)
+        assert result["tracked"] == 2 and result["losses_raised"] == 2
+        recs = recommend_store.list_recs("example.com")
+        lost = [r for r in recs if "grinders" in r["finding"]]
+        dropped = [r for r in recs if "espresso" in r["finding"]]
+        assert lost and lost[0]["severity"] == "high"     # was top-10
+        assert dropped and dropped[0]["severity"] == "medium"  # drop of 6
+        assert all(r["source"] == "skill:watch" for r in recs)
+
+        # next run: 'grinders' recovered to its old position
+        monkeypatch.setattr(watch, "_dfs", lambda *a, **k: _ranked_payload(
+            ("grinders", 4, "/g"), ("espresso", 18, "/e")))
+        result2, _ = watch.check_rankings("example.com",
+                                          "United States", "English", 50)
+        assert result2["recovered"] == 1
+        resolved = recommend_store.list_recs("example.com",
+                                             status="resolved")
+        assert any("grinders" in r["finding"] for r in resolved)
+        # still-open espresso rec did not duplicate on the second run
+        open_recs = recommend_store.list_recs("example.com")
+        assert len([r for r in open_recs
+                    if "espresso" in r["finding"]]) == 1
+
+    def test_competitor_growth_rec_and_dedup(self, monkeypatch):
+        drift_store.save("competitor-rival.com", {"rankings": [
+            {"keyword": "old kw", "position": 5, "url": "/o"}]})
+        gained = _ranked_payload(("old kw", 5, "/o"), ("new a", 3, "/a"),
+                                 ("new b", 4, "/b"), ("new c", 6, "/c"))
+        monkeypatch.setattr(watch, "_dfs", lambda *a, **k: gained)
+        report = watch.check_competitors("example.com", ["rival.com"],
+                                         "United States", "English", 50)
+        assert report["competitors"][0]["rec_raised"] is True
+        recs = recommend_store.list_recs("example.com")
+        assert len(recs) == 1
+        assert "rival.com" in recs[0]["finding"]
+        assert "3" in recs[0]["finding"]          # 3 new keywords
+        # a second identical run gains nothing new — no raise, no duplicate
+        watch.check_competitors("example.com", ["rival.com"],
+                                "United States", "English", 50)
+        recs = recommend_store.list_recs("example.com")
+        assert len(recs) == 1 and recs[0]["times_raised"] == 1
+
+    def test_competitor_below_threshold_stays_quiet(self, monkeypatch):
+        drift_store.save("competitor-rival.com", {"rankings": [
+            {"keyword": "old kw", "position": 5, "url": "/o"}]})
+        gained = _ranked_payload(("old kw", 5, "/o"), ("new a", 3, "/a"))
+        monkeypatch.setattr(watch, "_dfs", lambda *a, **k: gained)
+        watch.check_competitors("example.com", ["rival.com"],
+                                "United States", "English", 50)
+        assert recommend_store.list_recs("example.com") == []
+
+    def test_run_daily_offline(self, monkeypatch, tmp_path):
+        html = "<html><head></head><body><h1>Hi</h1></body></html>"
+        from site_crawler import FetchResult
+        monkeypatch.setattr(
+            watch, "fetch",
+            lambda url, timeout: FetchResult(200, "text/html", html, {}))
+        monkeypatch.setattr(watch, "_dfs", lambda *a, **k: _ranked_payload(
+            ("grinders", 4, "/g")))
+        summary = watch.run("example.com", "daily",
+                            ["https://example.com"], [], "", None,
+                            "United States", "English", 50)
+        assert summary["checks"]["lint"]["pages_linted"] == 1
+        assert summary["checks"]["lint"]["raised"] >= 1
+        assert summary["checks"]["rankings"]["tracked"] == 1
+        assert summary["snapshot_saved"] == ["rankings"]
+        assert summary["cost_usd"] == 0.0
+        # completion event landed on the timeline
+        assert any(e["type"] == "watch_completed"
+                   for e in event_log.events("example.com"))
+
+    def test_run_weekly_skips_ai_without_brand(self, monkeypatch):
+        monkeypatch.setattr(
+            watch, "fetch",
+            lambda url, timeout=20: pytest.fail("no pages in this run"))
+        responses = {"ranked": _ranked_payload(("grinders", 4, "/g")),
+                     "backlinks": {"result": [{"referring_domains": 10,
+                                               "backlinks": 50}]}}
+        monkeypatch.setattr(watch, "_dfs",
+                            lambda args, sandbox=False, **k: responses[args[0]])
+        summary = watch.run("example.com", "weekly", [], [], "", None,
+                            "United States", "English", 50)
+        assert summary["checks"]["ai_visibility"].startswith("skipped")
+        assert summary["checks"]["backlinks"]["referring_domains"] == 10
+        assert "backlinks" in summary["snapshot_saved"]
+
+    def test_schedule_lines(self):
+        lines = watch.schedule_lines("example.com", "weekly")
+        assert "schtasks" in lines["windows_schtasks"]
+        assert "example.com" in lines["windows_schtasks"]
+        assert "cron" in lines["note"] or "0 7" in lines["cron"]
+
+    def test_dry_run_calls_nothing(self, monkeypatch, capsys):
+        monkeypatch.setattr(watch, "_dfs",
+                            lambda *a, **k: pytest.fail("offline"))
+        monkeypatch.setattr(watch, "_memory_fallbacks", lambda: {})
+        rc = watch.main(["--domain", "example.com", "--dry-run"])
+        assert rc == 0
+        out = json.loads(capsys.readouterr().out)
+        assert out["checks"] == list(watch.PROFILES["weekly"])
+        assert "nothing was called" in out["note"]
 
 
 # ---------------------------------------------------------------------------
