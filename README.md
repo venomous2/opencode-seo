@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/venomous2/opencode-seo/actions/workflows/ci.yml/badge.svg)](https://github.com/venomous2/opencode-seo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-182%20passing-brightgreen)](tests)
+[![Tests](https://img.shields.io/badge/tests-190%20passing-brightgreen)](tests)
 [![Rules](https://img.shields.io/badge/rules-54%20self--testing-00E0BA)](rules)
 
 **An AI-native SEO platform for OpenCode.** Ask "why has my traffic dropped?", "what should we publish next?", "how do we improve AI visibility?" — and get evidence-backed answers, fixes, and client-ready reports, powered by live [DataForSEO](https://dataforseo.com) data and a deterministic rule engine that works identically across all [OpenRouter.ai](https://openrouter.ai/) models.
@@ -18,6 +18,7 @@ Inspired by [`AgriciDaniel/claude-seo`](https://github.com/AgriciDaniel/claude-s
 - [How it compares](#how-it-compares)
 - [Install](#install)
 - [Quick start](#quick-start)
+- [Fail bad SEO in CI](#fail-bad-seo-in-ci)
 - [Sample output](#sample-output)
 - [The skill map](#the-skill-map-87-skills)
 - [Project memory](#project-memory)
@@ -98,6 +99,17 @@ Full guide: [INSTALL.md](INSTALL.md) · **Then:** [docs/GETTING-STARTED.md](docs
 ```
 
 Or just talk naturally — "audit my site", "why don't I rank for X", "optimize this page for AI Overviews" — the `seo-suite` orchestrator routes you to the right skill.
+
+## Fail bad SEO in CI
+
+The rule engine runs fully offline, so it can gate your pipeline and review pull requests — no DataForSEO account or secrets needed:
+
+```yaml
+- name: SEO quality gate
+  run: python scripts/seo_lint.py --dir ./dist --min-score 80   # exits 1 below 80
+```
+
+On GitHub, go further: copy [examples/seo-pr.yml](examples/seo-pr.yml) into your repo and every PR gets **inline findings on the Files tab** plus a score-delta comment (`82 → 71 ❌`), and merges fail on new critical/high findings. Details: [docs/CI-AND-PR.md](docs/CI-AND-PR.md).
 
 ## Sample output
 

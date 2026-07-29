@@ -17,3 +17,6 @@ demo-report*
 
 clients/
 yaml-chart-test.html
+
+# project memory belongs to your projects, not to the suite repo
+seo-project.yml

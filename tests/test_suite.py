@@ -7,6 +7,8 @@ All tests are offline — no API calls.
 from __future__ import annotations
 
 import json
+import shutil
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -39,6 +41,7 @@ import seo_config  # noqa: E402
 import seo_fix  # noqa: E402
 import seo_forecast  # noqa: E402
 import seo_lint  # noqa: E402
+import seo_pr_check  # noqa: E402
 import spa_detect  # noqa: E402
 import watch  # noqa: E402
 
@@ -1877,3 +1880,150 @@ class TestRenderDiff:
         assert fired["failed"] == 1
         passed = rule_engine.run({"js_content_ratio": 1.1}, rules)
         assert passed["failed"] == 0
+
+
+# ---------------------------------------------------------------------------
+# seo_lint --format github
+# ---------------------------------------------------------------------------
+
+class TestGithubFormat:
+    def _results(self):
+        html = ("<html><head><title>T</title></head>"
+                "<body><h1>Hi</h1></body></html>")
+        rules = rule_engine.load_rules()
+        page = seo_lint.parse_html(html, "dist/page.html")
+        outcome = rule_engine.run(
+            page, seo_lint.filter_rules(rules, None, local=True))
+        outcome["url"] = "dist/page.html"
+        return [outcome]
+
+    def test_annotations_and_notice(self):
+        out = seo_lint.render_github(self._results())
+        assert "::notice file=dist/page.html,title=SEO score " in out
+        # no title tag of length >= 30 -> findings exist; critical/high map
+        # to ::error, medium/low to ::warning
+        levels = {line.split(" ")[0] for line in out.splitlines()
+                  if line.startswith("::")}
+        assert "::error" in levels or "::warning" in levels
+        assert "file=dist/page.html" in out
+
+    def test_escaping(self):
+        assert seo_lint._gh_escape("100%\nline2") == "100%25%0Aline2"
+        assert seo_lint._gh_escape_prop("a:b,c") == "a%3Ab%2Cc"
+
+    def test_main_github_format(self, tmp_path, capsys):
+        page = tmp_path / "p.html"
+        page.write_text("<html><head></head><body></body></html>",
+                        encoding="utf-8")
+        rc = seo_lint.main(["--file", str(page), "--format", "github"])
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "::error file=" in out          # missing-title is critical
+        assert "title=missing-title" in out
+
+
+# ---------------------------------------------------------------------------
+# seo_pr_check
+# ---------------------------------------------------------------------------
+
+GOOD_HTML = ('<html lang="en"><head>'
+             '<title>Best Coffee Grinders Guide 2026</title>'
+             '<meta name="description" content="'
+             + " ".join(["word"] * 25) + '">'
+             '<link rel="canonical" href="https://x.com/g">'
+             '<meta name="viewport" content="width=device-width">'
+             '</head><body><h1>Best coffee grinders</h1><h2>Our top pick</h2>'
+             "<p>" + " ".join(["word"] * 50) + "</p></body></html>")
+BAD_HTML = ("<html><head></head><body><h1>Best grinders</h1></body></html>")
+
+
+def _mh_rules():
+    """Metadata + headings rules: fixtures score distinctly without needing
+    a page that satisfies all 54 rules (CRO/a11y floors every tiny page)."""
+    return [r for r in rule_engine.load_rules()
+            if r["category"] in ("metadata", "headings")]
+
+
+class TestSeoPrCheck:
+    def test_lint_text_and_compare(self):
+        rules = _mh_rules()
+        before = seo_pr_check.lint_text(BAD_HTML, "p.html", rules)
+        after = seo_pr_check.lint_text(GOOD_HTML, "p.html", rules)
+        row = seo_pr_check.compare(before, after)
+        assert row["delta"] == 54                     # 46 -> 100
+        assert "missing-title" in row["fixed"]
+        assert row["new"] == []
+
+    def test_compare_new_file(self):
+        rules = _mh_rules()
+        after = seo_pr_check.lint_text(BAD_HTML, "p.html", rules)
+        row = seo_pr_check.compare(None, after)
+        assert row["before_score"] is None and row["delta"] is None
+        assert len(row["new"]) == len(after["findings"])  # all "new"
+
+    def test_gate_failures(self):
+        rules = _mh_rules()
+        bad = seo_pr_check.lint_text(BAD_HTML, "p.html", rules)
+        good = seo_pr_check.lint_text(GOOD_HTML, "p.html", rules)
+        regressed = seo_pr_check.compare(good, bad)     # 100 -> 46
+        improved = seo_pr_check.compare(bad, good)      # got better
+        reasons = seo_pr_check.gate_failures([regressed], None, None)
+        assert any("new critical/high" in r for r in reasons)
+        assert any("min-score 80" in r for r in
+                   seo_pr_check.gate_failures([regressed], 80, None))
+        assert any("max-drop 5" in r for r in
+                   seo_pr_check.gate_failures([regressed], None, 5))
+        assert seo_pr_check.gate_failures([improved], 80, 5) == []
+        assert seo_pr_check.gate_failures([regressed], None, None,
+                                          fail_on_new=False) == []
+
+    def test_summarise_shape(self):
+        rules = _mh_rules()
+        bad = seo_pr_check.lint_text(BAD_HTML, "p.html", rules)
+        good = seo_pr_check.lint_text(GOOD_HTML, "p.html", rules)
+        row = seo_pr_check.compare(good, bad)
+        failures = seo_pr_check.gate_failures([row], 80, 5)
+        md = seo_pr_check.summarise([row], failures, 80, 5)
+        assert md.startswith(seo_pr_check.MARKER)
+        assert "`p.html`" in md and "**FAIL**" in md
+        assert "missing-title" in md                # new-findings section
+        clean = seo_pr_check.summarise(
+            [seo_pr_check.compare(bad, good)], [], 80, 5)
+        assert "**PASS**" in clean
+
+    @pytest.mark.skipif(not shutil.which("git"), reason="git required")
+    def test_main_against_real_repo(self, tmp_path, monkeypatch, capsys):
+        def git(*args):
+            subprocess.run(["git", *args], check=True, capture_output=True)
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.delenv("GITHUB_STEP_SUMMARY", raising=False)
+        git("init", "-q", "-b", "main")
+        (tmp_path / "page.html").write_text(GOOD_HTML, encoding="utf-8")
+        (tmp_path / "note.txt").write_text("x", encoding="utf-8")
+        git("add", ".")
+        git("-c", "user.email=t@t", "-c", "user.name=t",
+            "commit", "-qm", "v1")
+        # regression commit: title/meta/canonical stripped
+        (tmp_path / "page.html").write_text(BAD_HTML, encoding="utf-8")
+        git("add", ".")
+        git("-c", "user.email=t@t", "-c", "user.name=t",
+            "commit", "-qm", "v2")
+        rc = seo_pr_check.main(["--all-changed", "--base", "HEAD~1",
+                                "--out", "summary.md"])
+        assert rc == 1
+        out = capsys.readouterr().out
+        assert "::error file=page.html" in out
+        assert "note.txt" not in out                # extension filter
+        summary = (tmp_path / "summary.md").read_text(encoding="utf-8")
+        assert "**FAIL**" in summary and "`page.html`" in summary
+        # fix commit: gate passes again and reports the fix
+        (tmp_path / "page.html").write_text(GOOD_HTML, encoding="utf-8")
+        git("add", ".")
+        git("-c", "user.email=t@t", "-c", "user.name=t",
+            "commit", "-qm", "v3")
+        rc = seo_pr_check.main(["--all-changed", "--base", "HEAD~1",
+                                "--out", "summary2.md"])
+        assert rc == 0
+        summary = (tmp_path / "summary2.md").read_text(encoding="utf-8")
+        assert "**PASS**" in summary

@@ -189,6 +189,11 @@ Exit code 1 below the threshold — drop it into your pipeline and no page
 ships below your floor. For SPAs, `--render auto` renders JavaScript first
 so you lint what Google sees.
 
+On GitHub the gate goes further: `--format github` emits inline PR
+annotations, and [CI-AND-PR.md](CI-AND-PR.md) shows how to give every pull
+request a score-delta comment and a merge-blocking check, with zero API
+spend.
+
 ## Tips and tricks
 
 - **Start free.** `seo_lint --save`, `/schema` and the briefing cost

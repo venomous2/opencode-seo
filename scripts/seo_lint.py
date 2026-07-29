@@ -11,6 +11,7 @@ Usage:
     python scripts/seo_lint.py --url U --min-score 80        # CI gate
     python scripts/seo_lint.py --url U --format text
     python scripts/seo_lint.py --url U --save                # persist findings
+    python scripts/seo_lint.py --dir ./dist --format github  # PR annotations
 
 Exit codes: 0 = lint ran and every page passed the gate (if given),
             1 = lint error or a page scored below --min-score.
@@ -158,6 +159,48 @@ def render_text(results: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+# ---------------------------------------------------------------------------
+# GitHub Actions annotations (workflow commands)
+# https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions
+# ---------------------------------------------------------------------------
+
+def _gh_escape(text: Any) -> str:
+    """Escape a workflow-command message body."""
+    return str(text).replace("%", "%25").replace("\r", "%0D") \
+        .replace("\n", "%0A")
+
+
+def _gh_escape_prop(text: Any) -> str:
+    """Escape a workflow-command property value (file, title)."""
+    return _gh_escape(text).replace(":", "%3A").replace(",", "%2C")
+
+
+def render_github(results: list[dict[str, Any]]) -> str:
+    """Findings as ::error/::warning annotations + a per-page ::notice.
+
+    critical/high become errors, medium/low warnings. Findings carry no
+    line numbers (the engine works on parsed data, not source positions),
+    so annotations attach at file level — which is what PR review shows.
+    """
+    lines = []
+    for result in results:
+        path = result["url"] or "(inline page)"
+        lines.append(f"::notice file={_gh_escape_prop(path)},"
+                     f"title=SEO score {result['score']}/100::"
+                     f"{result['failed']} finding(s), "
+                     f"{result['rules_run']} rules checked")
+        for f in result["findings"]:
+            level = "error" if f["severity"] in ("critical", "high") \
+                else "warning"
+            message = f"{f['severity']}: {f['why']}"
+            if f["fix"]:
+                message += f" fix: {f['fix']}"
+            lines.append(f"::{level} file={_gh_escape_prop(path)},"
+                         f"title={_gh_escape_prop(f['id'])}::"
+                         f"{_gh_escape(message)}")
+    return "\n".join(lines)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="seo_lint",
                                      description="Deterministic SEO linter")
@@ -173,7 +216,10 @@ def main(argv: list[str] | None = None) -> int:
                              "if needed, always = force render, never = raw HTML")
     parser.add_argument("--min-score", type=int,
                         help="exit 1 if any page scores below this (CI gate)")
-    parser.add_argument("--format", choices=["json", "text"], default="json")
+    parser.add_argument("--format", choices=["json", "text", "github"],
+                        default="json",
+                        help="github = GitHub Actions ::error/::warning "
+                             "annotations for PR review")
     parser.add_argument("--save", action="store_true",
                         help="persist findings to the recommendation store "
                              "(raises new/ongoing issues, resolves fixed ones)")
@@ -265,7 +311,14 @@ def main(argv: list[str] | None = None) -> int:
         store_report = recommend_store.save_lint_results(domain, results,
                                                          run_rules)
 
-    if args.format == "text":
+    if args.format == "github":
+        print(render_github(results))
+        if store_report:
+            print(f"::notice title=Recommendation store::"
+                  f"{store_report['raised']} saved, "
+                  f"{store_report['resolved']} resolved, "
+                  f"{store_report['open_total']} open")
+    elif args.format == "text":
         print(render_text(results))
         if store_report:
             print(f"\nstore: {store_report['raised']} finding(s) saved, "

@@ -3,6 +3,37 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.19.0] - 2026-07-24
+
+The PR gate — SEO review on every pull request, for free.
+
+### Added
+- **`seo_lint.py --format github`** — findings as GitHub Actions workflow
+  commands (`::error`/`::warning` with proper escaping), so they render as
+  inline annotations on the PR Files tab; each page gets a `::notice` with
+  its score. critical/high → error, medium/low → warning
+- **`seo_pr_check.py`** — the PR reviewer: diffs changed HTML files against
+  the base branch, lints both versions, annotates current findings, writes
+  a markdown summary (score delta, new findings, fixed findings) to
+  `$GITHUB_STEP_SUMMARY` and a comment file, and exits non-zero on
+  regressions. Gate: new critical/high findings fail by default;
+  `--min-score` and `--max-drop` add floors. Fully offline — no DataForSEO,
+  no secrets, no model calls
+- **`examples/seo-pr.yml`** — copy-paste workflow: clones the suite at
+  runtime, runs the gate, posts/updates one summary comment per PR
+- **`docs/CI-AND-PR.md`** — the recipe: three levels (CI gate →
+  annotations → full PR gate), tuning flags, honest limits (file-level
+  annotations, markdown caveat, what it deliberately doesn't check)
+- README "Fail bad SEO in CI" section; USER-GUIDE points at the recipe
+- 8 new tests (190 total), including a real-repo integration test that
+  commits a regression and watches the gate trip then pass
+
+### Design note
+Same rules locally, in CI, and in the PR — one source of truth, so the
+gate can't drift from what `seo_lint` tells you at your desk. What a PR
+can't know (rankings, volumes, backlinks) stays where it belongs:
+scheduled watch runs feeding the recommendation store.
+
 ## [0.18.1] - 2026-07-24
 
 User-facing documentation.

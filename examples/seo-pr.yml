@@ -1,0 +1,74 @@
+# SEO PR gate — OpenCode SEO Suite
+# ---------------------------------------------------------------------------
+# Lints the HTML files changed in a pull request with the suite's
+# deterministic rule engine, annotates findings inline on the Files tab,
+# comments the score delta on the PR, and fails the check on regressions.
+#
+# Fully offline: no DataForSEO account, no secrets, no API spend.
+#
+# Setup: copy this file to .github/workflows/seo-pr.yml in your repo.
+# Docs:  docs/CI-AND-PR.md in https://github.com/venomous2/opencode-seo
+# ---------------------------------------------------------------------------
+
+name: SEO gate
+
+on:
+  pull_request:
+    paths: ["**.html", "**.htm"]
+
+permissions:
+  contents: read
+  pull-requests: write   # lets the workflow update its summary comment
+
+jobs:
+  seo-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # needed to diff against the base branch
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Clone the suite at runtime. Pin to a commit SHA instead of main
+      # for a reproducible gate.
+      - name: Fetch the OpenCode SEO Suite
+        run: git clone --depth 1 https://github.com/venomous2/opencode-seo.git "$RUNNER_TEMP/opencode-seo"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Run the SEO gate
+        id: gate
+        run: >
+          python "$RUNNER_TEMP/opencode-seo/scripts/seo_pr_check.py"
+          --base "origin/${{ github.base_ref }}"
+          --all-changed
+          --min-score 80
+          --max-drop 5
+          --out "$RUNNER_TEMP/seo-summary.md"
+
+      # Runs even when the gate fails, so the PR shows *why*.
+      - name: Comment the summary on the PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync(
+              `${process.env.RUNNER_TEMP}/seo-summary.md`, 'utf8');
+            const marker = '<!-- seo-pr-gate -->';
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const { data: comments } = await github.rest.issues.listComments(
+              { owner, repo, issue_number });
+            const existing = comments.find(c => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment(
+                { owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment(
+                { owner, repo, issue_number, body });
+            }
