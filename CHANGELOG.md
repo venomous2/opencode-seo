@@ -3,6 +3,26 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.19.1] - 2026-07-29
+
+README revamp and real Nike.com screenshots.
+
+### Changed
+- **README rewrite** — outcome-first opening ("Turn OpenCode into an SEO
+  consultant that never hallucinates numbers"), "Just ask" section with
+  natural-language examples, elevated deterministic engine story ("AI
+  provides the reasoning. Python provides the truth."), real generated
+  screenshots (lint, audit report, dashboard), compact skill map, "At a
+  glance" benchmarks table, leaner architecture diagram, attribution
+  moved to the end
+- **`docs/images/`** — three real screenshots generated against Nike.com
+  using the suite's own headless browser: `lint-cli.png` (30/100,
+  deterministic findings), `audit-report.png` (branded HTML with charts),
+  `dashboard.png` (mission control with seeded recommendation queue)
+- **`scripts/generate_screenshots.py`** — repeatable screenshot generator
+  (Edge/Chrome headless `--screenshot`, zero extra deps); generates the
+  HTML artefacts from real lint data + seeded stores and captures PNGs
+
 ## [0.19.0] - 2026-07-24
 
 The PR gate — SEO review on every pull request, for free.
