@@ -246,14 +246,15 @@ def render_html(crawl: dict[str, Any], analysis: dict[str, Any],
     body = body.replace("%%LEGEND_HTML%%",
                         f'<div class="legend">{legend}</div>')
     return report_build.SHELL.format(
-        title=f"Internal link graph — {domain}",
+        title=f"Internal link graph \u2014 {domain}",
         brand="Lee Beirne",
         report_date=date.today().strftime("%d %B %Y"),
         navy=report_build.NAVY, emerald=report_build.EMERALD,
         orange=report_build.ORANGE, dark=report_build.DARK,
         toc="", body=body,
         footer=report_build._linkify(report_build.DEFAULT_FOOTER),
-        body_class="")
+        body_class="", score_section="", stats_row="",
+        report_type="Internal Link Graph", site_domain=domain)
 
 
 def main(argv: list[str] | None = None) -> int:

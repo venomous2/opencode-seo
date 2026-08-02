@@ -3,6 +3,29 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.19.3] - 2026-08-02
+
+Branded report template overhaul.
+
+### Changed
+- **`report_build.py` template** — dark header with LB monogram, brand
+  name/role, auto-detected report type, domain and date; score circle with
+  conic gradient auto-extracted from the markdown (`71/100` → 255.6°,
+  colour by band); findings-count tags auto-counted from severity tables;
+  colour-coded stats row auto-extracted from content; bordered section
+  titles; next-step dark gradient card; recommendations grid; roadmap
+  3-column layout; checkmark working lists; dark footer with emerald link;
+  one-pager mode scales every element to fit a single page
+- `link_graph_render.py` passes the new template variables
+  (`score_section`, `stats_row`, `report_type`, `site_domain`)
+
+### Fixed
+- Summary auto-extraction could slurp a table header row into the
+  score-summary paragraph when no prose followed the score — markdown
+  syntax lines (tables, fences, lists, headings) are now skipped
+- Verified: validate.py + 190 tests passing, smoke-tested header/score
+  extraction/tag counting end to end
+
 ## [0.19.2] - 2026-08-02
 
 Rebrand compatibility fixes.

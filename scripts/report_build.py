@@ -1,8 +1,9 @@
 """White-label HTML report builder for the OpenCode SEO Suite.
 
 Renders a suite markdown report into a styled, standalone HTML file with
-Lee Beirne's branding — charts, table of contents, severity badges, and a
-print-to-PDF-friendly layout.
+Lee Beirne's branded template — dark header with LB monogram, score circle,
+findings tables, recommendations grid, roadmap columns, and a print-to-PDF-
+friendly layout.
 
 Usage:
     python scripts/report_build.py REPORT.md [-o report.html]
@@ -172,7 +173,7 @@ def svg_compare(spec: dict) -> str:
     <span class="cmp-before" style="width:{before_w:.1f}%"></span>
     <span class="cmp-after" style="width:{after_w:.1f}%;background:{after_colour}"></span>
   </span>
-  <span class="bar-value">{before:g} → {after:g}</span>
+  <span class="bar-value">{before:g} \u2192 {after:g}</span>
   <span class="cmp-delta" style="color:{delta_colour}">{delta_txt}</span>
 </div>''')
     legend = (f'<span class="cmp-legend">'
@@ -225,7 +226,7 @@ def stat_cards(spec: dict) -> str:
         label, value = entry[0], entry[1]
         delta = str(entry[2]) if len(entry) > 2 else ""
         if delta:
-            delta_colour = EMERALD if delta.startswith(("+", "↑")) else ORANGE
+            delta_colour = EMERALD if delta.startswith(("+", "\u2191")) else ORANGE
             delta_html = f'<span class="stat-delta" style="color:{delta_colour}">{html.escape(delta)}</span>'
         else:
             delta_html = ""
@@ -241,7 +242,7 @@ def normalise_spec(raw: str) -> dict | None:
     """Parse a chart block's spec, tolerating the shapes different models emit.
 
     Canonical form is JSON, but weaker models often write YAML or a bare
-    list of label/value dicts — all are normalised to the same spec.
+    list of label/value dicts — all normalised to the same spec.
     """
     raw = raw.strip()
     # tolerate a bare chart-type word on the first line ("donut\n- label: ...")
@@ -309,7 +310,7 @@ def render_chart(block: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Markdown -> HTML (suite-flavoured subset, now with charts + TOC + badges)
+# Markdown -> HTML (branded template sections)
 # ---------------------------------------------------------------------------
 
 def _inline(text: str) -> str:
@@ -329,9 +330,92 @@ def _severity_badge(cell_html: str, raw: str) -> str:
     word = raw.strip().lower().rstrip(".")
     if word in SEVERITY_COLOURS:
         colour = SEVERITY_COLOURS[word]
-        return (f'<span class="badge" style="background:{colour}">'
+        return (f'<span class="badge" style="background:{colour};color:#fff">'
                 f'{html.escape(raw.strip())}</span>')
     return cell_html
+
+
+def _extract_score(markdown: str) -> tuple[int | None, str]:
+    """Extract overall score and summary from markdown content."""
+    # Look for patterns like "59/100", "Score: 59", "Overall: 59"
+    patterns = [
+        r"(?:overall|total|score|rating)[:\s]*(\d{1,3})\s*(?:/\s*100|out of 100)?",
+        r"(\d{1,3})\s*/\s*100",
+        r"(\d{1,3})\s*out of\s*100",
+    ]
+    for pattern in patterns:
+        m = re.search(pattern, markdown, re.I)
+        if m:
+            score = int(m.group(1))
+            if 0 <= score <= 100:
+                # Try to extract summary from first paragraph after score.
+                # Skip markdown syntax lines (headings, tables, fences,
+                # lists) so structural markup can't bleed into the summary.
+                summary = ""
+                after = markdown[m.end():m.end() + 500]
+                para_match = re.search(r"\n\n([^#\n|`\-*>][^\n]{20,200})",
+                                       after)
+                if para_match:
+                    summary = para_match.group(1).strip()
+                return score, summary
+    return None, ""
+
+
+def _extract_severity_counts(markdown: str) -> dict[str, int]:
+    """Count findings by severity from markdown content."""
+    counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+    # Look for severity badges/labels in tables and headings
+    for severity in counts:
+        # Match table cells with severity labels
+        pattern = rf'\|\s*{severity}\s*\|'
+        counts[severity] += len(re.findall(pattern, markdown, re.I))
+        # Match severity in headings
+        pattern = rf'#{1,6}\s+.*{severity}'
+        counts[severity] += len(re.findall(pattern, markdown, re.I))
+        # Match severity badges
+        pattern = rf'class="[^"]*badge[^"]*"[^>]*>{severity}'
+        counts[severity] += len(re.findall(pattern, markdown, re.I))
+    return counts
+
+
+def _extract_stats(markdown: str) -> list[tuple[str, str]]:
+    """Extract key statistics from markdown content."""
+    stats = []
+    # Look for stat patterns like "X backlinks", "Y keywords", "Z words"
+    patterns = [
+        (r"(\d+)\s*(?:total\s+)?backlinks?", "Backlinks"),
+        (r"(\d+)\s*(?:ranked\s+)?keywords?", "Ranked Keywords"),
+        (r"(\d+)\s*words?\s*(?:on\s+)?(?:the\s+)?(?:home\s*page|main\s*page)", "Homepage Words"),
+        (r"(?:home\s*page|main\s*page)\s*(?:is\s+|has\s+|contains\s+)?(\d+)\s*words?", "Homepage Words"),
+        (r"(\d+)\s*pages?\s*(?:in\s+)?(?:the\s+)?sitemap", "Sitemap Pages"),
+        (r"sitemap\s*(?:contains?\s+|has\s+)?(\d+)\s*pages?", "Sitemap Pages"),
+        (r"(\d+)\s*(?:AI\s+)?crawlers?\s*(?:allowed|enabled)", "AI Crawlers"),
+        (r"on[- ]page\s*(?:score|rating)[:\s]*(\d+)", "On-page Score"),
+        (r"(?:domain\s+)?authority[:\s]*(\d+)", "Domain Authority"),
+    ]
+    for pattern, label in patterns:
+        m = re.search(pattern, markdown, re.I)
+        if m:
+            stats.append((label, m.group(1)))
+    return stats
+
+
+def _classify_section(heading: str, body: str) -> str:
+    """Classify a section by its heading and content to determine rendering style."""
+    h = heading.lower()
+    if any(w in h for w in ["critical", "high", "medium", "low", "finding"]):
+        return "findings"
+    if any(w in h for w in ["recommend", "action", "fix"]):
+        return "recommendations"
+    if any(w in h for w in ["roadmap", "timeline", "30", "60", "90", "phase"]):
+        return "roadmap"
+    if any(w in h for w in ["working", "strength", "positive", "pass"]):
+        return "working"
+    if any(w in h for w in ["executive", "summary", "overview"]):
+        return "summary"
+    if any(w in h for w in ["next step", "single best", "priority"]):
+        return "next_step"
+    return "default"
 
 
 def md_to_html(md: str) -> tuple[str, list[tuple[int, str, str]]]:
@@ -452,7 +536,7 @@ def md_to_html(md: str) -> tuple[str, list[tuple[int, str, str]]]:
 
 
 # ---------------------------------------------------------------------------
-# HTML shell
+# HTML shell — branded Lee Beirne template
 # ---------------------------------------------------------------------------
 
 SHELL = """<!DOCTYPE html>
@@ -465,128 +549,245 @@ SHELL = """<!DOCTYPE html>
 <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800|space-grotesk:400,500,600,700,800" rel="stylesheet">
 <style>
   :root {{ --navy: {navy}; --emerald: {emerald}; --orange: {orange};
-           --dark: {dark}; --ink: #111827; --muted: #6b7280;
-           --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; }}
-  * {{ box-sizing: border-box; }}
+           --dark: {dark}; --white: #FFFFFF; --gray-50: #F9FAFB;
+           --gray-100: #F3F4F6; --gray-200: #E5E7EB; --gray-500: #6B7280;
+           --gray-600: #4B5563; --gray-700: #374151; --gray-900: #111827; }}
+  * {{ margin: 0; padding: 0; box-sizing: border-box; }}
   body {{ font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-         color: var(--ink); line-height: 1.6; max-width: 48rem;
-         margin: 0 auto; padding: 0 1.5rem 4rem; }}
-  .palette-strip {{ height: 6px; margin: 0 -1.5rem 2rem;
-    background: linear-gradient(90deg, var(--emerald) 0 33%, var(--navy) 33% 66%, var(--orange) 66% 100%); }}
-  .report-header {{ border-bottom: 3px solid var(--navy);
-                   padding-bottom: 1.2rem; margin-bottom: 1.5rem; }}
-  .report-header .brand {{ color: var(--emerald); font-weight: 700;
-                   letter-spacing: .14em; text-transform: uppercase;
-                   font-size: .8rem; }}
-  .report-header h1 {{ margin: .35rem 0 .2rem; font-size: 2rem;
-                   line-height: 1.2; border: 0; color: var(--ink); }}
-  .report-header .date {{ color: var(--muted); font-size: .85rem; }}
-  nav.toc {{ background: var(--gray-50); border: 1px solid var(--gray-200);
-            border-left: 4px solid var(--emerald); border-radius: 8px;
-            padding: 1rem 1.4rem; margin: 0 0 2rem; font-size: .92rem; }}
-  nav.toc strong {{ color: var(--navy); text-transform: uppercase;
-                   font-size: .75rem; letter-spacing: .1em; }}
-  nav.toc ul {{ margin: .5rem 0 0; padding-left: 1.2rem; }}
-  nav.toc li {{ margin: .15rem 0; }}
-  nav.toc li.l3 {{ margin-left: 1.2rem; font-size: .88em; }}
-  nav.toc a {{ color: var(--ink); text-decoration: none; }}
-  nav.toc a:hover {{ color: var(--navy); }}
-  h1, h2, h3, h4 {{ color: var(--navy); line-height: 1.3; }}
-  h2 {{ border-bottom: 2px solid var(--emerald); padding-bottom: .3rem;
-       margin-top: 2.4rem; }}
-  h3 {{ color: var(--ink); }}
-  table {{ border-collapse: collapse; width: 100%; margin: 1rem 0;
-          font-size: .9rem; }}
-  th, td {{ border: 1px solid var(--gray-200); padding: .45rem .6rem;
-           text-align: left; vertical-align: top; }}
-  th {{ background: var(--navy); color: #fff; }}
-  tr:nth-child(even) td {{ background: var(--gray-50); }}
-  .badge {{ color: #fff; font-weight: 700; font-size: .78rem;
-           padding: .12rem .5rem; border-radius: 999px;
-           text-transform: uppercase; letter-spacing: .04em; }}
+         color: var(--gray-700); line-height: 1.6; background: var(--white); }}
+  .container {{ max-width: 1000px; margin: 0 auto; padding: 0 40px; }}
+  .report-header {{ background: linear-gradient(135deg, var(--dark) 0%, var(--navy) 100%);
+                    padding: 60px 0; color: var(--white); }}
+  .report-header .inner {{ display: flex; justify-content: space-between;
+                           align-items: flex-start; }}
+  .brand {{ display: flex; align-items: center; gap: 16px; }}
+  .brand-logo {{ width: 56px; height: 56px; background: var(--navy);
+                 border-radius: 10px; display: flex; align-items: center;
+                 justify-content: center; font-size: 24px; font-weight: 800;
+                 color: var(--white); border: 2px solid rgba(255,255,255,0.15); }}
+  .brand-name {{ font-family: 'Space Grotesk', sans-serif; font-size: 22px;
+                 font-weight: 700; }}
+  .brand-role {{ font-size: 13px; color: rgba(255,255,255,0.6); }}
+  .report-meta {{ text-align: right; }}
+  .report-meta .label {{ font-size: 11px; text-transform: uppercase;
+                         letter-spacing: 0.08em; color: var(--emerald);
+                         font-weight: 600; margin-bottom: 4px; }}
+  .report-meta .value {{ font-size: 14px; color: rgba(255,255,255,0.7); }}
+  .score-section {{ background: var(--white); border: 1px solid var(--gray-200);
+                    border-top: none; padding: 40px 0; }}
+  .score-grid {{ display: grid; grid-template-columns: 200px 1fr;
+                 gap: 40px; align-items: center; }}
+  .score-circle {{ width: 160px; height: 160px; border-radius: 50%;
+                   background: conic-gradient(var(--score-colour) 0deg,
+                   var(--score-colour) var(--score-deg),
+                   var(--orange) var(--score-deg),
+                   var(--orange) var(--score-deg-plus),
+                   var(--gray-200) var(--score-deg-plus));
+                   display: flex; align-items: center; justify-content: center;
+                   position: relative; }}
+  .score-circle::after {{ content: ''; width: 130px; height: 130px;
+                          background: var(--white); border-radius: 50%;
+                          position: absolute; }}
+  .score-value {{ position: relative; z-index: 1;
+                  font-family: 'Space Grotesk', sans-serif; font-size: 48px;
+                  font-weight: 800; color: var(--dark); }}
+  .score-value span {{ font-size: 20px; color: var(--gray-500); }}
+  .score-summary h2 {{ font-family: 'Space Grotesk', sans-serif; font-size: 24px;
+                       font-weight: 700; color: var(--dark); margin-bottom: 12px; }}
+  .score-summary p {{ color: var(--gray-600); line-height: 1.7; }}
+  .findings-count {{ display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }}
+  .findings-count .tag {{ padding: 4px 12px; border-radius: 6px;
+                          font-size: 12px; font-weight: 600; }}
+  .tag-critical {{ background: #FEE2E2; color: #991B1B; }}
+  .tag-high {{ background: #FEF3C7; color: #92400E; }}
+  .tag-medium {{ background: #DBEAFE; color: #1E40AF; }}
+  .tag-low {{ background: #D1FAE5; color: #065F46; }}
+  .content {{ padding: 48px 0; }}
+  .section {{ margin-bottom: 48px; }}
+  .section-title {{ font-family: 'Space Grotesk', sans-serif; font-size: 20px;
+                    font-weight: 700; color: var(--dark); padding-bottom: 12px;
+                    border-bottom: 2px solid var(--dark); margin-bottom: 24px; }}
+  h3 {{ font-family: 'Space Grotesk', sans-serif; font-size: 16px;
+        font-weight: 600; color: var(--dark); margin-bottom: 12px; }}
+  p {{ margin-bottom: 16px; }}
+  table {{ width: 100%; border-collapse: collapse; margin-bottom: 24px; }}
+  th {{ background: var(--gray-50); text-align: left; padding: 10px 16px;
+        font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+        color: var(--gray-500); font-weight: 600;
+        border-bottom: 1px solid var(--gray-200); }}
+  td {{ padding: 12px 16px; font-size: 14px; border-bottom: 1px solid var(--gray-100);
+        vertical-align: top; }}
+  tr:last-child td {{ border-bottom: none; }}
+  .badge {{ display: inline-block; padding: 2px 8px; border-radius: 4px;
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.05em; }}
+  .status-critical {{ background: #FEE2E2; color: #991B1B; }}
+  .status-high {{ background: #FEE2E2; color: #991B1B; }}
+  .status-medium {{ background: #FEF3C7; color: #92400E; }}
+  .status-low {{ background: #DBEAFE; color: #1E40AF; }}
+  .status-pass {{ background: #D1FAE5; color: #065F46; }}
   code {{ background: var(--gray-100); padding: .1rem .3rem; border-radius: 4px;
-         font-size: .85em; }}
+          font-size: .85em; }}
   pre.code {{ background: var(--dark); color: #e2e8f0; padding: 1rem;
-             border-radius: 8px; overflow-x: auto; font-size: .82rem; }}
+              border-radius: 8px; overflow-x: auto; font-size: .82rem; }}
   pre.code code {{ background: none; padding: 0; }}
   blockquote {{ border-left: 4px solid var(--emerald); margin: 1rem 0;
-               padding: .4rem 1rem; color: var(--ink);
-               background: #ecfdf5; border-radius: 0 8px 8px 0; }}
+                padding: .4rem 1rem; color: var(--ink);
+                background: #ecfdf5; border-radius: 0 8px 8px 0; }}
   hr {{ border: 0; border-top: 1px solid var(--gray-200); margin: 2rem 0; }}
   a {{ color: var(--navy); }}
+  .rec-grid {{ display: grid; gap: 12px; }}
+  .rec-card {{ display: grid; grid-template-columns: 80px 1fr; gap: 16px;
+               align-items: center; padding: 16px;
+               border: 1px solid var(--gray-200); border-radius: 8px;
+               background: var(--white); }}
+  .rec-card:hover {{ border-color: var(--navy); }}
+  .rec-why {{ font-size: 13px; color: var(--gray-500); }}
+  .working-list {{ list-style: none; }}
+  .working-list li {{ padding: 10px 0; border-bottom: 1px solid var(--gray-100);
+                      display: flex; align-items: flex-start; gap: 12px;
+                      font-size: 14px; }}
+  .working-list li::before {{ content: '\\2713'; display: inline-block;
+                              width: 20px; height: 20px; background: var(--emerald);
+                              color: var(--white); border-radius: 50%;
+                              text-align: center; line-height: 20px; font-size: 12px;
+                              font-weight: 700; flex-shrink: 0; }}
+  .next-step {{ background: linear-gradient(135deg, var(--dark) 0%, var(--navy) 100%);
+                border-radius: 12px; padding: 32px; color: var(--white); margin: 32px 0; }}
+  .next-step h3 {{ color: var(--emerald); margin-bottom: 8px;
+                   font-family: 'Space Grotesk', sans-serif; }}
+  .next-step p {{ color: rgba(255,255,255,0.8); margin-bottom: 0; }}
+  .stats-row {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                gap: 16px; margin-bottom: 48px; }}
+  .stat-card {{ background: var(--white); border: 1px solid var(--gray-200);
+                border-radius: 8px; padding: 20px; text-align: center;
+                border-top: 4px solid var(--emerald); }}
+  .stat-card:nth-child(2) {{ border-top-color: var(--navy); }}
+  .stat-card:nth-child(3) {{ border-top-color: var(--orange); }}
+  .stat-card:nth-child(4) {{ border-top-color: var(--emerald); }}
+  .stat-card:nth-child(5) {{ border-top-color: var(--navy); }}
+  .stat-card:nth-child(6) {{ border-top-color: var(--orange); }}
+  .stat-value {{ font-family: 'Space Grotesk', sans-serif; font-size: 28px;
+                 font-weight: 800; color: var(--dark); }}
+  .stat-label {{ font-size: 11px; text-transform: uppercase;
+                 letter-spacing: 0.08em; color: var(--gray-500); margin-top: 4px; }}
+  .stat-delta {{ font-size: .85rem; font-weight: 600; }}
+  .roadmap-grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }}
+  .roadmap-col {{ background: var(--white); border: 1px solid var(--gray-200);
+                  border-radius: 8px; padding: 24px;
+                  border-top: 4px solid var(--emerald); }}
+  .roadmap-col:nth-child(2) {{ border-top-color: var(--navy); }}
+  .roadmap-col:nth-child(3) {{ border-top-color: var(--orange); }}
+  .roadmap-col h4 {{ font-family: 'Space Grotesk', sans-serif; font-size: 14px;
+                     font-weight: 700; color: var(--dark); margin-bottom: 16px;
+                     text-transform: uppercase; letter-spacing: 0.05em; }}
+  .roadmap-col ol {{ padding-left: 20px; font-size: 13px; color: var(--gray-600);
+                     line-height: 1.8; }}
   .chart {{ margin: 1.4rem 0; }}
-  .chart figcaption {{ font-weight: 600; color: var(--ink);
-                      margin-bottom: .6rem; font-size: .95rem; }}
+  .chart figcaption {{ font-weight: 600; color: var(--dark);
+                       margin-bottom: .6rem; font-size: .95rem; }}
   .chart.donut {{ text-align: center; }}
-  .legend {{ margin-top: .5rem; font-size: .82rem; color: var(--ink); }}
+  .legend {{ margin-top: .5rem; font-size: .82rem; color: var(--gray-900); }}
   .legend-item {{ display: inline-block; margin: 0 .9rem .2rem 0; }}
   .legend-item .sw {{ display: inline-block; width: 10px; height: 10px;
-                     border-radius: 2px; margin-right: .3rem; }}
+                      border-radius: 2px; margin-right: .3rem; }}
   .chart-unparsed {{ border: 1px dashed var(--orange); border-radius: 8px;
-                    padding: .8rem; margin: 1.4rem 0; font-size: .85rem; }}
+                     padding: .8rem; margin: 1.4rem 0; font-size: .85rem; }}
   .chart-unparsed strong {{ color: var(--orange); }}
   .bar-row {{ display: flex; align-items: center; gap: .7rem;
-             margin: .35rem 0; font-size: .88rem; }}
-  .bar-label {{ flex: 0 0 11rem; color: var(--ink); }}
+              margin: .35rem 0; font-size: .88rem; }}
+  .bar-label {{ flex: 0 0 11rem; color: var(--gray-900); }}
   .bar-track {{ flex: 1; background: var(--gray-200); border-radius: 999px;
-               height: 14px; overflow: hidden; }}
+                height: 14px; overflow: hidden; }}
   .bar-fill {{ display: block; height: 100%; border-radius: 999px; }}
   .bar-value {{ flex: 0 0 5.5rem; text-align: right; font-weight: 600; }}
   .cmp-row {{ display: flex; align-items: center; gap: .7rem;
-             margin: .35rem 0; font-size: .88rem; }}
+              margin: .35rem 0; font-size: .88rem; }}
   .cmp-track {{ flex: 1; position: relative; background: var(--gray-200);
-               border-radius: 999px; height: 14px; }}
+                border-radius: 999px; height: 14px; }}
   .cmp-before {{ position: absolute; inset: 0 auto 0 0;
-                background: #94a3b8; border-radius: 999px; opacity: .55; }}
+                 background: #94a3b8; border-radius: 999px; opacity: .55; }}
   .cmp-after {{ position: absolute; inset: 0 auto 0 0;
-               border-radius: 999px; height: 8px; margin-top: 3px; }}
+                border-radius: 999px; height: 8px; margin-top: 3px; }}
   .cmp-delta {{ flex: 0 0 3rem; text-align: right; font-weight: 700; }}
-  .cmp-legend {{ font-weight: 400; font-size: .78rem; color: var(--muted);
-                margin-left: .5rem; }}
+  .cmp-legend {{ font-weight: 400; font-size: .78rem; color: var(--gray-500);
+                 margin-left: .5rem; }}
   .cmp-legend .sw {{ display: inline-block; width: 10px; height: 10px;
-                    border-radius: 2px; margin: 0 .25rem 0 .6rem;
-                    vertical-align: -1px; }}
+                     border-radius: 2px; margin: 0 .25rem 0 .6rem;
+                     vertical-align: -1px; }}
   .stat-strip {{ display: flex; flex-wrap: wrap; gap: .8rem; margin: 1.4rem 0; }}
-  .stat-card {{ flex: 1 1 9rem; border: 1px solid var(--gray-200);
-               border-top: 4px solid var(--emerald); border-radius: 8px;
-               padding: .8rem 1rem; background: #fff; }}
-  .stat-card:nth-child(2n) {{ border-top-color: var(--navy); }}
-  .stat-card:nth-child(3n) {{ border-top-color: var(--orange); }}
-  .stat-card:nth-child(4n) {{ border-top-color: #F59E0B; }}
-  .stat-label {{ color: var(--muted); font-size: .72rem;
-                text-transform: uppercase; letter-spacing: .08em; }}
-  .stat-value {{ font-size: 1.7rem; font-weight: 700; color: var(--ink); }}
-  .stat-delta {{ font-size: .85rem; font-weight: 600; }}
-  .report-footer {{ margin-top: 3rem; padding-top: 1rem;
-                   border-top: 3px solid var(--navy);
-                   color: var(--muted); font-size: .82rem; }}
-  .report-footer a {{ color: var(--navy); }}
+  .report-footer {{ background: var(--dark); padding: 32px 0;
+                    text-align: center; color: rgba(255,255,255,0.4);
+                    font-size: 13px; }}
+  .report-footer a {{ color: var(--emerald); text-decoration: none; }}
+  nav.toc {{ background: var(--gray-50); border: 1px solid var(--gray-200);
+             border-left: 4px solid var(--emerald); border-radius: 8px;
+             padding: 1rem 1.4rem; margin: 0 0 2rem; font-size: .92rem; }}
+  nav.toc strong {{ color: var(--navy); text-transform: uppercase;
+                    font-size: .75rem; letter-spacing: .1em; }}
+  nav.toc ul {{ margin: .5rem 0 0; padding-left: 1.2rem; }}
+  nav.toc li {{ margin: .15rem 0; }}
+  nav.toc li.l3 {{ margin-left: 1.2rem; font-size: .88em; }}
+  nav.toc a {{ color: var(--gray-900); text-decoration: none; }}
+  nav.toc a:hover {{ color: var(--navy); }}
+  body.onepager .score-section {{ padding: 24px 0; }}
+  body.onepager .score-grid {{ gap: 24px; }}
+  body.onepager .score-circle {{ width: 100px; height: 100px; }}
+  body.onepager .score-circle::after {{ width: 80px; height: 80px; }}
+  body.onepager .score-value {{ font-size: 32px; }}
+  body.onepager .section {{ margin-bottom: 24px; }}
+  body.onepager .stats-row {{ margin-bottom: 24px; }}
+  body.onepager .roadmap-grid {{ gap: 12px; }}
+  body.onepager .roadmap-col {{ padding: 16px; }}
+  body.onepager .next-step {{ padding: 20px; margin: 20px 0; }}
   @media print {{
-    body {{ max-width: none; padding: 0 1rem; }}
+    body {{ font-size: 11px; }}
+    .container {{ padding: 0 20px; }}
+    .report-header {{ padding: 30px 0; }}
+    .score-section, .content {{ padding: 20px 0; }}
+    .section {{ page-break-inside: avoid; }}
+    .roadmap-grid {{ grid-template-columns: 1fr; }}
     nav.toc {{ display: none; }}
-    h2 {{ page-break-after: avoid; }}
-    table, pre, .chart, .stat-strip {{ page-break-inside: avoid; }}
   }}
-  /* one-pager: tighter rhythm so the summary genuinely fits a page */
-  body.onepager {{ max-width: 44rem; }}
-  body.onepager h2 {{ margin-top: 1.2rem; font-size: 1.15rem; }}
-  body.onepager .chart {{ margin: .8rem 0; }}
-  body.onepager .report-header {{ margin-bottom: 1rem; }}
-  body.onepager table {{ font-size: .82rem; }}
+  @media (max-width: 768px) {{
+    .score-grid {{ grid-template-columns: 1fr; }}
+    .report-header .inner {{ flex-direction: column; gap: 24px; }}
+    .report-meta {{ text-align: left; }}
+    .roadmap-grid {{ grid-template-columns: 1fr; }}
+    .stats-row {{ grid-template-columns: repeat(2, 1fr); }}
+  }}
 </style>
 </head>
 <body{body_class}>
-<div class="palette-strip"></div>
-<header class="report-header">
-  <div class="brand">{brand}</div>
-  <h1>{title}</h1>
-  <div class="date">{report_date}</div>
-</header>
-{toc}
-<main>
-{body}
-</main>
-<footer class="report-footer">{footer}</footer>
+<div class="report-header">
+  <div class="container">
+    <div class="inner">
+      <div class="brand">
+        <div class="brand-logo">LB</div>
+        <div>
+          <div class="brand-name">{brand}</div>
+          <div class="brand-role">AI SEO Consultant</div>
+        </div>
+      </div>
+      <div class="report-meta">
+        <div class="label">{report_type}</div>
+        <div class="value">{site_domain}</div>
+        <div class="value">{report_date}</div>
+      </div>
+    </div>
+  </div>
+</div>
+{score_section}
+<div class="content">
+  <div class="container">
+    {stats_row}
+    {toc}
+    {body}
+  </div>
+</div>
+<div class="report-footer">
+  <div class="container"><p>{footer}</p></div>
+</div>
 </body>
 </html>
 """
@@ -594,6 +795,61 @@ SHELL = """<!DOCTYPE html>
 
 def _linkify(text: str) -> str:
     return re.sub(r"(https?://[^\s<]+)", r'<a href="\1">\1</a>', text)
+
+
+def _extract_domain(title: str) -> str:
+    """Extract domain from title like 'SEO Audit — leebeirne.com'."""
+    m = re.search(r"([a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,})", title)
+    return m.group(1) if m else ""
+
+
+def _build_score_section(score: int | None, summary: str,
+                         severity_counts: dict[str, int]) -> str:
+    """Build the score section HTML."""
+    if score is None:
+        return ""
+
+    score_colour = EMERALD if score >= 70 else (ORANGE if score >= 40 else "#F59E0B")
+    score_deg = score * 3.6
+    score_deg_plus = min(score_deg + 53, 360)
+
+    summary_html = html.escape(summary) if summary else ""
+
+    tags = []
+    for severity, count in severity_counts.items():
+        if count > 0:
+            tags.append(f'<span class="tag tag-{severity}">{count} '
+                        f'{severity.title()}</span>')
+    tags_html = "".join(tags) if tags else ""
+
+    return f'''<div class="score-section">
+  <div class="container">
+    <div class="score-grid">
+      <div class="score-circle" style="--score-colour:{score_colour};
+           --score-deg:{score_deg}deg; --score-deg-plus:{score_deg_plus}deg;">
+        <div class="score-value">{score}<span>/100</span></div>
+      </div>
+      <div class="score-summary">
+        <h2>Overall Score: {score}/100</h2>
+        <p>{summary_html}</p>
+        <div class="findings-count">{tags_html}</div>
+      </div>
+    </div>
+  </div>
+</div>'''
+
+
+def _build_stats_row(stats: list[tuple[str, str]]) -> str:
+    """Build the stats row HTML."""
+    if not stats:
+        return ""
+    cards = []
+    for label, value in stats:
+        cards.append(f'''<div class="stat-card">
+  <div class="stat-value">{html.escape(value)}</div>
+  <div class="stat-label">{html.escape(label)}</div>
+</div>''')
+    return '<div class="stats-row">' + "".join(cards) + '</div>'
 
 
 def extract_onepager(md: str) -> str:
@@ -652,6 +908,13 @@ def build(md_path: Path, out_path: Path, brand: str, title: str | None,
         markdown = re.sub(r"^#\s+.+\n?", "", markdown, count=1)
     if onepager:
         markdown = extract_onepager(markdown)
+
+    # Extract metadata for branded template
+    score, summary = _extract_score(markdown)
+    severity_counts = _extract_severity_counts(markdown)
+    stats = _extract_stats(markdown)
+    domain = _extract_domain(title or "")
+
     body, toc_entries = md_to_html(markdown)
     if not onepager and len(toc_entries) >= 3:
         items = "".join(
@@ -661,13 +924,36 @@ def build(md_path: Path, out_path: Path, brand: str, title: str | None,
                     f"<ul>{items}</ul></nav>")
     else:
         toc_html = ""
+
+    score_section = _build_score_section(score, summary, severity_counts)
+    stats_row = _build_stats_row(stats)
+
+    # Determine report type from title
+    report_type = "Complete Site Audit"
+    if title:
+        t = title.lower()
+        if "technical" in t:
+            report_type = "Technical SEO Audit"
+        elif "on-page" in t or "onpage" in t:
+            report_type = "On-Page SEO Audit"
+        elif "content" in t:
+            report_type = "Content Audit"
+        elif "competitor" in t:
+            report_type = "Competitor Analysis"
+        elif "backlink" in t:
+            report_type = "Backlink Audit"
+        elif "local" in t:
+            report_type = "Local SEO Audit"
+
     page = SHELL.format(
-        title=html.escape(title), brand=html.escape(brand),
+        title=html.escape(title or ""), brand=html.escape(brand),
         report_date=date.today().strftime("%d %B %Y"),
         navy=NAVY, emerald=EMERALD, orange=ORANGE, dark=DARK,
         toc=toc_html, body=body,
         footer=_linkify(html.escape(footer)),
-        body_class=' class="onepager"' if onepager else "")
+        body_class=' class="onepager"' if onepager else "",
+        score_section=score_section, stats_row=stats_row,
+        report_type=report_type, site_domain=domain)
     out_path.write_text(page, encoding="utf-8")
     return out_path
 
