@@ -41,30 +41,29 @@ from pathlib import Path
 
 DEFAULT_FOOTER = "Report built by Lee Beirne - https://leebeirne.com"
 
-# Brand palette
-TEAL = "#00E0BA"
-PURPLE = "#91008D"
-PINK = "#FF3483"
-YELLOW = "#FFCF00"
-INK = "#1e293b"
-MUTED = "#64748b"
+# Brand palette — Lee Beirne
+NAVY = "#1E3A8A"
+EMERALD = "#10B981"
+ORANGE = "#C2410C"
+DARK = "#0F172A"
 
-CHART_COLOURS = [TEAL, PURPLE, PINK, YELLOW]
+# Keep legacy names for chart colours
+CHART_COLOURS = [EMERALD, NAVY, ORANGE, "#F59E0B"]
 SEVERITY_COLOURS = {
-    "critical": PINK,
-    "high": PURPLE,
-    "medium": YELLOW,
-    "low": TEAL,
+    "critical": ORANGE,
+    "high": NAVY,
+    "medium": "#F59E0B",
+    "low": EMERALD,
 }
 
 
 def score_colour(value: float, max_value: float = 100) -> str:
     pct = 100 * value / max_value if max_value else 0
     if pct >= 70:
-        return TEAL
+        return EMERALD
     if pct >= 40:
-        return YELLOW
-    return PINK
+        return "#F59E0B"
+    return ORANGE
 
 
 # ---------------------------------------------------------------------------
@@ -121,9 +120,9 @@ def svg_donut(spec: dict) -> str:
           stroke-linecap="round" stroke-dasharray="{filled:.1f} {circ - filled:.1f}"
           transform="rotate(-90 {cx} {cy})"/>
   <text x="{cx}" y="{cy - 2}" text-anchor="middle" font-size="26"
-        font-weight="700" fill="{INK}">{value:g}</text>
+        font-weight="700" fill="#111827">{value:g}</text>
   <text x="{cx}" y="{cy + 18}" text-anchor="middle" font-size="11"
-        fill="{MUTED}">/ {max_value:g}</text>
+        fill="#6b7280">/ {max_value:g}</text>
 </svg>
 <figcaption>{title}</figcaption>
 </figure>'''
@@ -166,7 +165,7 @@ def svg_compare(spec: dict) -> str:
         after_colour = (score_colour(after, max_value) if spec.get("max")
                         else CHART_COLOURS[i % len(CHART_COLOURS)])
         delta_txt = f"+{delta:g}" if delta > 0 else f"{delta:g}"
-        delta_colour = TEAL if delta > 0 else (PINK if delta < 0 else MUTED)
+        delta_colour = EMERALD if delta > 0 else (ORANGE if delta < 0 else "#6b7280")
         rows.append(f'''<div class="cmp-row">
   <span class="bar-label">{label}</span>
   <span class="cmp-track">
@@ -178,7 +177,7 @@ def svg_compare(spec: dict) -> str:
 </div>''')
     legend = (f'<span class="cmp-legend">'
               f'<span class="sw" style="background:#94a3b8"></span>previous'
-              f'<span class="sw" style="background:{TEAL}"></span>current</span>')
+              f'<span class="sw" style="background:{EMERALD}"></span>current</span>')
     return (f'<figure class="chart"><figcaption>{title} {legend}</figcaption>'
             + "".join(rows) + "</figure>")
 
@@ -203,18 +202,18 @@ def svg_line(spec: dict) -> str:
     points = [point(i, v) for i, v in enumerate(values)]
     polyline = " ".join(f"{x:.1f},{y:.1f}" for x, y in points)
     dots = "".join(
-        f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4" fill="{TEAL}" stroke="#fff" stroke-width="1.5"/>'
+        f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4" fill="{EMERALD}" stroke="#fff" stroke-width="1.5"/>'
         for x, y in points)
     labels = "".join(
-        f'<text x="{x:.1f}" y="{h - 8}" text-anchor="middle" font-size="10" fill="{MUTED}">{html.escape(str(label))}</text>'
+        f'<text x="{x:.1f}" y="{h - 8}" text-anchor="middle" font-size="10" fill="#6b7280">{html.escape(str(label))}</text>'
         for (label, _), (x, _) in zip(data, points))
     return f'''<figure class="chart line">
 <figcaption>{title}</figcaption>
 <svg viewBox="0 0 {w} {h}" width="100%" role="img" aria-label="{title}">
   <line x1="{pad_x}" y1="{h - pad_y}" x2="{w - pad_x}" y2="{h - pad_y}" stroke="#cbd5e1"/>
-  <text x="6" y="{pad_y + 4}" font-size="10" fill="{MUTED}">{hi:g}{unit}</text>
-  <text x="6" y="{h - pad_y}" font-size="10" fill="{MUTED}">{lo:g}{unit}</text>
-  <polyline points="{polyline}" fill="none" stroke="{TEAL}" stroke-width="2.5"/>
+  <text x="6" y="{pad_y + 4}" font-size="10" fill="#6b7280">{hi:g}{unit}</text>
+  <text x="6" y="{h - pad_y}" font-size="10" fill="#6b7280">{lo:g}{unit}</text>
+  <polyline points="{polyline}" fill="none" stroke="{EMERALD}" stroke-width="2.5"/>
   {dots}{labels}
 </svg>
 </figure>'''
@@ -226,7 +225,7 @@ def stat_cards(spec: dict) -> str:
         label, value = entry[0], entry[1]
         delta = str(entry[2]) if len(entry) > 2 else ""
         if delta:
-            delta_colour = TEAL if delta.startswith(("+", "↑")) else PINK
+            delta_colour = EMERALD if delta.startswith(("+", "↑")) else ORANGE
             delta_html = f'<span class="stat-delta" style="color:{delta_colour}">{html.escape(delta)}</span>'
         else:
             delta_html = ""
@@ -462,57 +461,59 @@ SHELL = """<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
+<link rel="preconnect" href="https://fonts.bunny.net">
+<link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800|space-grotesk:400,500,600,700,800" rel="stylesheet">
 <style>
-  :root {{ --teal: {teal}; --purple: {purple}; --pink: {pink};
-           --yellow: {yellow}; --ink: {ink}; --muted: {muted}; }}
+  :root {{ --navy: {navy}; --emerald: {emerald}; --orange: {orange};
+           --dark: {dark}; --ink: #111827; --muted: #6b7280;
+           --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; }}
   * {{ box-sizing: border-box; }}
-  body {{ font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  body {{ font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
          color: var(--ink); line-height: 1.6; max-width: 48rem;
          margin: 0 auto; padding: 0 1.5rem 4rem; }}
   .palette-strip {{ height: 6px; margin: 0 -1.5rem 2rem;
-    background: linear-gradient(90deg, var(--teal) 0 25%, var(--purple) 25% 50%,
-                                var(--pink) 50% 75%, var(--yellow) 75% 100%); }}
-  .report-header {{ border-bottom: 3px solid var(--purple);
+    background: linear-gradient(90deg, var(--emerald) 0 33%, var(--navy) 33% 66%, var(--orange) 66% 100%); }}
+  .report-header {{ border-bottom: 3px solid var(--navy);
                    padding-bottom: 1.2rem; margin-bottom: 1.5rem; }}
-  .report-header .brand {{ color: var(--purple); font-weight: 700;
+  .report-header .brand {{ color: var(--emerald); font-weight: 700;
                    letter-spacing: .14em; text-transform: uppercase;
                    font-size: .8rem; }}
   .report-header h1 {{ margin: .35rem 0 .2rem; font-size: 2rem;
                    line-height: 1.2; border: 0; color: var(--ink); }}
   .report-header .date {{ color: var(--muted); font-size: .85rem; }}
-  nav.toc {{ background: #f8fafc; border: 1px solid #e2e8f0;
-            border-left: 4px solid var(--teal); border-radius: 8px;
+  nav.toc {{ background: var(--gray-50); border: 1px solid var(--gray-200);
+            border-left: 4px solid var(--emerald); border-radius: 8px;
             padding: 1rem 1.4rem; margin: 0 0 2rem; font-size: .92rem; }}
-  nav.toc strong {{ color: var(--purple); text-transform: uppercase;
+  nav.toc strong {{ color: var(--navy); text-transform: uppercase;
                    font-size: .75rem; letter-spacing: .1em; }}
   nav.toc ul {{ margin: .5rem 0 0; padding-left: 1.2rem; }}
   nav.toc li {{ margin: .15rem 0; }}
   nav.toc li.l3 {{ margin-left: 1.2rem; font-size: .88em; }}
   nav.toc a {{ color: var(--ink); text-decoration: none; }}
-  nav.toc a:hover {{ color: var(--purple); }}
-  h1, h2, h3, h4 {{ color: var(--purple); line-height: 1.3; }}
-  h2 {{ border-bottom: 2px solid var(--teal); padding-bottom: .3rem;
+  nav.toc a:hover {{ color: var(--navy); }}
+  h1, h2, h3, h4 {{ color: var(--navy); line-height: 1.3; }}
+  h2 {{ border-bottom: 2px solid var(--emerald); padding-bottom: .3rem;
        margin-top: 2.4rem; }}
   h3 {{ color: var(--ink); }}
   table {{ border-collapse: collapse; width: 100%; margin: 1rem 0;
           font-size: .9rem; }}
-  th, td {{ border: 1px solid #cbd5e1; padding: .45rem .6rem;
+  th, td {{ border: 1px solid var(--gray-200); padding: .45rem .6rem;
            text-align: left; vertical-align: top; }}
-  th {{ background: var(--purple); color: #fff; }}
-  tr:nth-child(even) td {{ background: #f1f5f9; }}
+  th {{ background: var(--navy); color: #fff; }}
+  tr:nth-child(even) td {{ background: var(--gray-50); }}
   .badge {{ color: #fff; font-weight: 700; font-size: .78rem;
            padding: .12rem .5rem; border-radius: 999px;
            text-transform: uppercase; letter-spacing: .04em; }}
-  code {{ background: #f1f5f9; padding: .1rem .3rem; border-radius: 4px;
+  code {{ background: var(--gray-100); padding: .1rem .3rem; border-radius: 4px;
          font-size: .85em; }}
-  pre.code {{ background: #0f172a; color: #e2e8f0; padding: 1rem;
+  pre.code {{ background: var(--dark); color: #e2e8f0; padding: 1rem;
              border-radius: 8px; overflow-x: auto; font-size: .82rem; }}
   pre.code code {{ background: none; padding: 0; }}
-  blockquote {{ border-left: 4px solid var(--teal); margin: 1rem 0;
+  blockquote {{ border-left: 4px solid var(--emerald); margin: 1rem 0;
                padding: .4rem 1rem; color: var(--ink);
-               background: #f0fdfb; border-radius: 0 8px 8px 0; }}
-  hr {{ border: 0; border-top: 1px solid #e2e8f0; margin: 2rem 0; }}
-  a {{ color: var(--purple); }}
+               background: #ecfdf5; border-radius: 0 8px 8px 0; }}
+  hr {{ border: 0; border-top: 1px solid var(--gray-200); margin: 2rem 0; }}
+  a {{ color: var(--navy); }}
   .chart {{ margin: 1.4rem 0; }}
   .chart figcaption {{ font-weight: 600; color: var(--ink);
                       margin-bottom: .6rem; font-size: .95rem; }}
@@ -521,19 +522,19 @@ SHELL = """<!DOCTYPE html>
   .legend-item {{ display: inline-block; margin: 0 .9rem .2rem 0; }}
   .legend-item .sw {{ display: inline-block; width: 10px; height: 10px;
                      border-radius: 2px; margin-right: .3rem; }}
-  .chart-unparsed {{ border: 1px dashed var(--pink); border-radius: 8px;
+  .chart-unparsed {{ border: 1px dashed var(--orange); border-radius: 8px;
                     padding: .8rem; margin: 1.4rem 0; font-size: .85rem; }}
-  .chart-unparsed strong {{ color: var(--pink); }}
+  .chart-unparsed strong {{ color: var(--orange); }}
   .bar-row {{ display: flex; align-items: center; gap: .7rem;
              margin: .35rem 0; font-size: .88rem; }}
   .bar-label {{ flex: 0 0 11rem; color: var(--ink); }}
-  .bar-track {{ flex: 1; background: #e2e8f0; border-radius: 999px;
+  .bar-track {{ flex: 1; background: var(--gray-200); border-radius: 999px;
                height: 14px; overflow: hidden; }}
   .bar-fill {{ display: block; height: 100%; border-radius: 999px; }}
   .bar-value {{ flex: 0 0 5.5rem; text-align: right; font-weight: 600; }}
   .cmp-row {{ display: flex; align-items: center; gap: .7rem;
              margin: .35rem 0; font-size: .88rem; }}
-  .cmp-track {{ flex: 1; position: relative; background: #e2e8f0;
+  .cmp-track {{ flex: 1; position: relative; background: var(--gray-200);
                border-radius: 999px; height: 14px; }}
   .cmp-before {{ position: absolute; inset: 0 auto 0 0;
                 background: #94a3b8; border-radius: 999px; opacity: .55; }}
@@ -546,20 +547,20 @@ SHELL = """<!DOCTYPE html>
                     border-radius: 2px; margin: 0 .25rem 0 .6rem;
                     vertical-align: -1px; }}
   .stat-strip {{ display: flex; flex-wrap: wrap; gap: .8rem; margin: 1.4rem 0; }}
-  .stat-card {{ flex: 1 1 9rem; border: 1px solid #e2e8f0;
-               border-top: 4px solid var(--teal); border-radius: 8px;
+  .stat-card {{ flex: 1 1 9rem; border: 1px solid var(--gray-200);
+               border-top: 4px solid var(--emerald); border-radius: 8px;
                padding: .8rem 1rem; background: #fff; }}
-  .stat-card:nth-child(2n) {{ border-top-color: var(--purple); }}
-  .stat-card:nth-child(3n) {{ border-top-color: var(--pink); }}
-  .stat-card:nth-child(4n) {{ border-top-color: var(--yellow); }}
+  .stat-card:nth-child(2n) {{ border-top-color: var(--navy); }}
+  .stat-card:nth-child(3n) {{ border-top-color: var(--orange); }}
+  .stat-card:nth-child(4n) {{ border-top-color: #F59E0B; }}
   .stat-label {{ color: var(--muted); font-size: .72rem;
                 text-transform: uppercase; letter-spacing: .08em; }}
   .stat-value {{ font-size: 1.7rem; font-weight: 700; color: var(--ink); }}
   .stat-delta {{ font-size: .85rem; font-weight: 600; }}
   .report-footer {{ margin-top: 3rem; padding-top: 1rem;
-                   border-top: 3px solid var(--purple);
+                   border-top: 3px solid var(--navy);
                    color: var(--muted); font-size: .82rem; }}
-  .report-footer a {{ color: var(--purple); }}
+  .report-footer a {{ color: var(--navy); }}
   @media print {{
     body {{ max-width: none; padding: 0 1rem; }}
     nav.toc {{ display: none; }}
@@ -663,8 +664,7 @@ def build(md_path: Path, out_path: Path, brand: str, title: str | None,
     page = SHELL.format(
         title=html.escape(title), brand=html.escape(brand),
         report_date=date.today().strftime("%d %B %Y"),
-        teal=TEAL, purple=PURPLE, pink=PINK, yellow=YELLOW,
-        ink=INK, muted=MUTED,
+        navy=NAVY, emerald=EMERALD, orange=ORANGE, dark=DARK,
         toc=toc_html, body=body,
         footer=_linkify(html.escape(footer)),
         body_class=' class="onepager"' if onepager else "")
