@@ -1310,8 +1310,8 @@ class TestReportBuild:
         md = "| Severity | Issue |\n|---|---|\n| Critical | Broken |\n| Low | Polish |"
         body, _ = report_build.md_to_html(md)
         assert 'class="badge"' in body
-        assert report_build.PINK in body   # critical colour
-        assert report_build.TEAL in body   # low colour
+        assert report_build.ORANGE in body   # critical colour
+        assert report_build.EMERALD in body  # low colour
 
     def test_toc_collected(self):
         md = "## Alpha\n\nx\n\n## Beta\n\ny\n\n## Gamma\n\nz"
@@ -1322,13 +1322,13 @@ class TestReportBuild:
         html = report_build.render_chart(
             '{"type": "donut", "title": "Score", "value": 64, "max": 100}')
         assert "<svg" in html and ">64<" in html
-        assert report_build.YELLOW in html  # 64% -> amber band
+        assert "#F59E0B" in html  # 64% -> amber band
 
     def test_donut_score_bands(self):
         good = report_build.render_chart('{"type":"donut","value":80,"max":100}')
         bad = report_build.render_chart('{"type":"donut","value":20,"max":100}')
-        assert report_build.TEAL in good
-        assert report_build.PINK in bad
+        assert report_build.EMERALD in good
+        assert report_build.ORANGE in bad
 
     def test_bar_chart(self):
         html = report_build.render_chart(

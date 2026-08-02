@@ -95,8 +95,8 @@ def build_lint_html() -> Path:
          "the query a searcher typed.",
          "Expand to 50-60 characters with the main keyword near the front."),
     ]
-    sev_c = {"critical": "#FF3483", "high": "#91008D",
-             "medium": "#FFCF00", "low": "#00E0BA"}
+    sev_c = {"critical": "#C2410C", "high": "#1E3A8A",
+             "medium": "#F59E0B", "low": "#10B981"}
     rows = ""
     for sev, rule_id, actual, why, fix in findings:
         c = sev_c[sev]
@@ -114,14 +114,14 @@ def build_lint_html() -> Path:
     background:#0f172a;color:#e2e8f0;padding:40px 48px;max-width:1200px}}
   .head{{display:flex;align-items:center;gap:16px;margin-bottom:28px}}
   .logo{{width:48px;height:48px;border-radius:12px;
-    background:linear-gradient(135deg,#00E0BA,#91008D)}}
+    background:linear-gradient(135deg,#10B981,#1E3A8A)}}
   h1{{font-size:24px}}.dom{{color:#64748b;font-size:14px;margin-top:2px}}
   .card{{background:#1e293b;border-radius:12px;padding:28px;
     display:flex;align-items:center;gap:28px;margin-bottom:28px}}
   .ring{{position:relative;width:110px;height:110px;flex-shrink:0}}
   .ring svg{{transform:rotate(-90deg)}}
   .ring .v{{position:absolute;inset:0;display:flex;align-items:center;
-    justify-content:center;font-size:32px;font-weight:700;color:#00E0BA}}
+    justify-content:center;font-size:32px;font-weight:700;color:#10B981}}
   .meta p{{color:#94a3b8;font-size:14px;margin-bottom:6px}}
   .badge{{display:inline-block;padding:3px 10px;border-radius:4px;
     font-size:12px;font-weight:600;color:#fff;margin-right:6px}}
@@ -142,7 +142,7 @@ def build_lint_html() -> Path:
     <svg viewBox="0 0 110 110" width="110" height="110">
       <circle cx="55" cy="55" r="46" fill="none" stroke="#334155"
               stroke-width="10"/>
-      <circle cx="55" cy="55" r="46" fill="none" stroke="#00E0BA"
+      <circle cx="55" cy="55" r="46" fill="none" stroke="#10B981"
               stroke-width="10" stroke-dasharray="86.7 202.4"
               stroke-linecap="round"/>
     </svg>
@@ -152,10 +152,10 @@ def build_lint_html() -> Path:
     <p><strong style="font-size:18px">30 / 100</strong> &mdash; 12 findings,
       54 rules checked</p>
     <p style="margin-top:10px">
-      <span class="badge" style="background:#FF348322;color:#FF3483">0 critical</span>
-      <span class="badge" style="background:#91008D22;color:#c084fc">2 high</span>
-      <span class="badge" style="background:#FFCF0022;color:#FFCF00">2 medium</span>
-      <span class="badge" style="background:#00E0BA22;color:#00E0BA">8 low</span>
+      <span class="badge" style="background:#C2410C22;color:#C2410C">0 critical</span>
+      <span class="badge" style="background:#1E3A8A22;color:#93c5fd">2 high</span>
+      <span class="badge" style="background:#F59E0B22;color:#F59E0B">2 medium</span>
+      <span class="badge" style="background:#10B98122;color:#10B981">8 low</span>
     </p>
     <p style="margin-top:10px;color:#94a3b8;font-size:13px">
       Deterministic &bull; 54 YAML rules &bull; zero model calls &bull;

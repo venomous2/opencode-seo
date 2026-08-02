@@ -3,6 +3,26 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.19.2] - 2026-08-02
+
+Rebrand compatibility fixes.
+
+### Changed (already on main via ee3061d)
+- `report_build.py` brand palette: teal/purple/pink → **navy `#1E3A8A` /
+  emerald `#10B981` / orange `#C2410C`** (+ amber `#F59E0B` for medium),
+  fonts Segoe UI → **Inter + Space Grotesk** (Bunny Fonts). Charts, badges,
+  stat cards and table headers all use the new palette
+
+### Fixed
+- `link_graph_render.py` referenced the removed `TEAL/PURPLE/PINK/YELLOW/
+  INK/MUTED` constants and crashed on import — remapped node colours and
+  the `SHELL.format` call to the new palette
+- 5 test assertions still expecting the old colours — updated to the new
+  constants (behaviour unchanged)
+- `docs/images/*.png` regenerated with the new branding so the README
+  screenshots match what report_build now produces
+- Full suite green again: validate + 190 tests passing
+
 ## [0.19.1] - 2026-07-29
 
 README revamp and real Nike.com screenshots.

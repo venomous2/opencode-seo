@@ -38,10 +38,10 @@ RING_START = 150
 RING_STEP = 130
 
 COLOURS = {
-    "home": report_build.PURPLE,
-    "normal": report_build.TEAL,
-    "hub": report_build.YELLOW,
-    "orphan": report_build.PINK,
+    "home": report_build.NAVY,
+    "normal": report_build.EMERALD,
+    "hub": "#F59E0B",
+    "orphan": report_build.ORANGE,
     "unreachable": "#94a3b8",
 }
 
@@ -164,7 +164,7 @@ def render_svg(graph: dict[str, Any], max_labels: int = 16) -> str:
         opacity = "0.30" if e["tree"] else "0.05"
         parts.append(f'<line x1="{e["x1"]:.0f}" y1="{e["y1"]:.0f}" '
                      f'x2="{e["x2"]:.0f}" y2="{e["y2"]:.0f}" '
-                     f'stroke="{report_build.MUTED}" stroke-opacity="{opacity}" '
+                     f'stroke="#6b7280" stroke-opacity="{opacity}" '
                      f'stroke-width="1"/>')
     top = sorted(nodes, key=lambda n: -n["inlinks"])[:max_labels]
     label_urls = {n["url"] for n in top}
@@ -175,7 +175,7 @@ def render_svg(graph: dict[str, Any], max_labels: int = 16) -> str:
                      f'{n["outlinks"]} outlinks</title></circle>')
         if n["url"] in label_urls and n["depth"] >= 0:
             parts.append(f'<text x="{n["x"] + n["size"] + 3:.0f}" y="{n["y"] + 3:.0f}" '
-                         f'font-size="11" fill="{report_build.INK}">'
+                         f'font-size="11" fill="#111827">'
                          f'{_short(n["url"])}</text>')
     parts.append("</svg>")
     return "".join(parts)
@@ -249,9 +249,8 @@ def render_html(crawl: dict[str, Any], analysis: dict[str, Any],
         title=f"Internal link graph — {domain}",
         brand="Lee Beirne",
         report_date=date.today().strftime("%d %B %Y"),
-        teal=report_build.TEAL, purple=report_build.PURPLE,
-        pink=report_build.PINK, yellow=report_build.YELLOW,
-        ink=report_build.INK, muted=report_build.MUTED,
+        navy=report_build.NAVY, emerald=report_build.EMERALD,
+        orange=report_build.ORANGE, dark=report_build.DARK,
         toc="", body=body,
         footer=report_build._linkify(report_build.DEFAULT_FOOTER),
         body_class="")
