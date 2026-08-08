@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/venomous2/opencode-seo/actions/workflows/ci.yml/badge.svg)](https://github.com/venomous2/opencode-seo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-197%20passing-brightgreen)](tests)
+[![Tests](https://img.shields.io/badge/tests-203%20passing-brightgreen)](tests)
 [![Rules](https://img.shields.io/badge/rules-54%20self--testing-00E0BA)](rules)
 [![Models](https://img.shields.io/badge/models-400%2B-blueviolet)](https://openrouter.ai/)
 

@@ -219,6 +219,11 @@ spend.
 - **The cache is your budget.** Repeat research within the TTL hits the
   disk cache, not the API. `--no-cache` exists for when you truly need
   fresh data.
+- **Trace redirects, do not follow-and-guess.**
+  `python scripts/site_crawler.py --url https://www.example.com --canonical-variants --pretty`
+  records the initial status, every `Location`, final URL and hop count.
+  A final 200 after a 301 is correct; only a non-canonical variant's
+  initial 200 is a duplicate-host problem.
 - **Learn the API with `--sandbox`.** Most DataForSEO commands accept
   `--sandbox` — free fake data, real shapes.
 - **Be specific in chat.** "Audit example.com for a Shopify migration next

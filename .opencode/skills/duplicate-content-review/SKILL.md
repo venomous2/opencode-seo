@@ -27,9 +27,12 @@ If credentials are missing, audit the supplied URLs from webfetch alone.
 
 ## Process
 
-1. **Variant sweep** — check each key URL under http/https, www/non-www,
-   trailing slash or not. All variants should 301 to one canonical form;
-   any 200 response on a variant is a duplication bug.
+1. **Variant sweep** — use
+   `python scripts/site_crawler.py --url <canonical-url> --canonical-variants --pretty`
+   for http/https and www/non-www. All variants should 301 to one canonical
+   form; only an **initial no-follow 200** on a non-canonical variant is a
+   duplication bug. A final 200 after a 301 is correct; trace a separate
+   redirect-chain finding if it takes more than one hop.
 2. **Parameter URLs** — sort, filter, session-ID, and tracking parameters
    (utm_*) rendering full duplicate pages at 200 status.
 3. **Near-duplicate bodies** — compare fetched pages' main content; pages

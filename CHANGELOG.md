@@ -3,6 +3,40 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.20.2] - 2026-08-08
+
+Redirect tracing — initial response evidence, not final-response guesses.
+
+### Fixed
+- **`site_crawler.fetch()` false canonicalisation evidence** — urllib follows
+  redirects by default, so the crawler previously recorded a final 200
+  against the original HTTP/non-www URL and discarded every intermediate
+  301/Location header. This could produce a false report that a working
+  redirect variant served duplicate 200 content
+
+### Added
+- `trace_redirects()` — no-follow GET trace: requested URL, initial status,
+  every raw/resolved Location target, final URL/status, redirect count,
+  loops, broken Locations and hop-limit failures
+- `canonical_variant_audit()` and CLI modes:
+  `site_crawler.py --url <canonical> --canonical-variants --pretty` and
+  `--trace-redirects`; variants are classified as canonical 200,
+  redirect-ok, redirect-chain, direct-200 duplicate, wrong-final, loop or
+  broken Location
+- Normal crawler records now retain `requested_url` and redirect-followed
+  `final_url` alongside final content status
+- Technical SEO, redirect analysis and duplicate-content workflows now
+  require no-follow trace evidence for redirect findings
+- 6 deterministic no-network tests (203 total): one-hop redirects,
+  two-hop chains, loops, missing Locations, direct-200 variants and crawl
+  requested/final URL metadata
+
+### Verified live
+`qcs.co.uk` now reports exactly what httpstatus.io shows: all variants end
+at `https://www.qcs.co.uk/` with 200; only `http://qcs.co.uk/` has a
+two-hop 301 chain through `http://www.qcs.co.uk/` and is correctly labelled
+`needs_chain_cleanup`, not a failed canonicalisation.
+
 ## [0.20.1] - 2026-08-08
 
 Branded PDF report rendering repair.

@@ -18,9 +18,15 @@ needs exactly one 301 to its closest new equivalent.
 
 ## Data pulls
 
-Check each URL's redirect behavior with the webfetch tool (follow the
-Location chain hop by hop, recording status codes). For migration mode,
-check which old URLs carry equity before writing rules:
+Use the built-in no-follow tracer; it preserves the initial response and
+Location chain instead of silently reporting the final 200 response:
+
+```
+python scripts/site_crawler.py --url <url> --trace-redirects --pretty
+python scripts/site_crawler.py --url <canonical-url> --canonical-variants --pretty
+```
+
+For migration mode, check which old URLs carry equity before writing rules:
 
 ```
 python scripts/dfs_client.py backlinks  --target https://example.com/old-page --pretty
@@ -33,9 +39,11 @@ Never assume an old URL is worthless — verify with data before letting it
 
 ## Process
 
-1. **Trace** — for each URL, record the full hop sequence: status code,
-   Location target, hop count, final status. Flag chains (>1 hop), loops,
-   and chains ending in 404/soft-404.
+1. **Trace** — for each URL, record requested URL, initial status, every
+   Location target, redirect count, final URL and final status. Flag chains
+   (>1 hop), loops, missing Location headers, wrong final URLs and chains
+   ending in 404/soft-404. Never call a source URL a 200 solely because a
+   redirect-following fetch ended at a 200 page.
 2. **Semantics** — verify the right status is used:
    - **301** — permanent move; signals consolidate to the target. Correct
      for migrations and canonicalization.

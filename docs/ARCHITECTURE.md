@@ -66,7 +66,7 @@ score) so the orchestrator can synthesize a 0-100 site score.
 | `sxo_analyser.py` | Deterministic SXO baseline: page-type candidates, live SERP consensus, SERP-fit verdict and existing CRO/accessibility experience scores; persists high-confidence mismatch recommendations |
 | `seo_forecast.py` | Honest click forecasting: volume × position-CTR with a printed uncertainty band and every assumption in the output; can snapshot the scenario into drift |
 | `impact_report.py` | Change-impact analysis: joins completed recommendations to bracketing drift snapshots (keyword/URL movement) with association-not-causation verdicts |
-| `site_crawler.py` | Built-in concurrent crawler (v2): sitemap cross-check, near-duplicate detection, soft-404 probe, anchors, OG/Twitter, mixed content, security headers |
+| `site_crawler.py` | Built-in concurrent crawler (v2): sitemap cross-check, near-duplicate detection, soft-404 probe, anchors, OG/Twitter, mixed content, security headers and no-follow redirect/canonical-variant traces |
 | `link_graph.py` | Internal link graph analysis (orphans, hubs, depth, anchor quality) from crawl data |
 | `link_graph_render.py` | Visual radial link graph (branded SVG → HTML/PDF) |
 | `spa_detect.py` | SPA heuristics (verdict + evidence) — decides when rendering is needed |

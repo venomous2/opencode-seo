@@ -22,8 +22,13 @@ python scripts/dfs_client.py onpage --url <url>
 python scripts/dfs_client.py lighthouse --url <url>
 ```
 
-webfetch these directly: the page itself, `/robots.txt`, `/sitemap.xml`,
-and any redirecting variant (http://, www/non-www).
+Fetch directly: the page itself, `/robots.txt` and `/sitemap.xml`.
+For protocol/host canonicalisation, use the no-follow trace — do **not**
+infer the source status from a redirect-following fetch:
+
+```
+python scripts/site_crawler.py --url <canonical-url> --canonical-variants --pretty
+```
 
 Optional Google layer (real index status, only if configured):
 `python scripts/google_client.py gsc-inspect --url <url> --site <site>`
@@ -33,15 +38,19 @@ Optional Google layer (real index status, only if configured):
 1. **Crawlability** — robots.txt disallows covering the URL, meta robots /
    X-Robots-Tag directives, and whether CSS/JS assets are blocked (which
    breaks rendering even when the page itself is allowed).
-2. **Status codes** — expect a clean 200. Map redirect chains (more than
-   one hop wastes crawl budget), 4xx on linked pages, and soft 404s
-   (200 status with an error page body).
+2. **Status codes** — expect a clean 200. For every redirect claim, record
+   requested URL, **initial** status, each Location target, final URL,
+   final status and redirect count from `--canonical-variants` or
+   `--trace-redirects`. A final 200 after a 301 is a working redirect, not
+   a source URL serving 200. Flag chains (>1 hop), loops, missing Location
+   headers, wrong final URLs, 4xx on linked pages and soft 404s.
 3. **Indexability** — canonical present and consistent (delegate deep
    canonical work to `canonical-review`), no noindex conflicts, no
    parameter-generated duplicate sets.
 4. **Delivery** — HTTPS everywhere with no mixed content; http and
-   www/non-www variants 301 to one canonical host; sitemap declared in
-   robots.txt and actually fetchable.
+   www/non-www variants 301 to one canonical host; record a separate
+   medium-priority chain finding when a variant reaches that host in more
+   than one hop. Sitemap declared in robots.txt and actually fetchable.
 5. **International** — if hreflang is present, verify each annotation has
    a return link and a valid language/region code; x-default recommended.
 6. **Rendering** — webfetch the HTML and look for an empty SPA shell

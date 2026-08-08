@@ -7,11 +7,17 @@ Usage:
     python scripts/site_crawler.py --url https://example.com [--max-pages 200]
         [--workers 5] [--delay 0.4] [--timeout 15] [--ignore-robots]
         [--no-sitemap-check] [--no-dup-check] [--no-probe] [--pretty]
+    python scripts/site_crawler.py --url https://www.example.com \
+        --canonical-variants --pretty
 
 Output (JSON):
     summary: pages crawled, status distribution, metadata/H1/image stats,
-             sitemap cross-check, near-duplicate pairs, soft-404 probe
+              sitemap cross-check, near-duplicate pairs, soft-404 probe
     pages:   one record per URL with all extracted SEO fields
+
+Redirect tracing uses no-follow requests. Unlike a normal content fetch, it
+preserves the original status, every Location header, final URL and hop count
+so a 301 -> 200 chain is never reported as a source URL returning 200.
 """
 
 from __future__ import annotations
@@ -31,7 +37,7 @@ from collections import deque, namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 USER_AGENT = "OpenCodeSEOSuite-Crawler/2.0 (+https://opencode.ai)"
 
@@ -72,7 +78,23 @@ LIVE_CHAT_MARKERS = (
     "live-chat", "live_chat", "chat-widget", "olark",
 )
 
-FetchResult = namedtuple("FetchResult", ["status", "content_type", "body", "headers"])
+# Keep the original four positional fields for existing callers/tests. The
+# fifth field records urllib's final URL after it has followed redirects.
+FetchResult = namedtuple("FetchResult",
+                         ["status", "content_type", "body", "headers", "final_url"],
+                         defaults=[""])
+REDIRECT_STATUSES = {301, 302, 303, 307, 308}
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Expose redirect responses to the tracer instead of following them."""
+
+    def redirect_request(self, req: Any, fp: Any, code: int, msg: str,
+                         headers: Any, newurl: str) -> None:
+        return None
+
+
+_NO_REDIRECT_OPENER = urllib.request.build_opener(_NoRedirect())
 
 
 class PageParser(HTMLParser):
@@ -451,18 +473,162 @@ class PageParser(HTMLParser):
 # ---------------------------------------------------------------------------
 
 def fetch(url: str, timeout: int) -> FetchResult:
-    """GET a URL. Returns FetchResult(status, content_type, body, headers)."""
+    """GET content, following redirects, while preserving the final URL.
+
+    Use ``trace_redirects`` for canonicalisation or redirect-chain claims;
+    this helper intentionally follows redirects so the crawler can parse the
+    final page content.
+    """
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             content_type = response.headers.get("Content-Type", "")
             body = response.read(2_000_000).decode("utf-8", errors="replace")
             headers = {k.lower(): v for k, v in response.headers.items()}
-            return FetchResult(response.status, content_type, body, headers)
+            return FetchResult(response.status, content_type, body, headers,
+                               response.geturl())
     except urllib.error.HTTPError as exc:
-        return FetchResult(exc.code, "", "", {})
+        return FetchResult(exc.code, "", "", {}, url)
     except (urllib.error.URLError, TimeoutError, OSError):
-        return FetchResult(0, "", "", {})
+        return FetchResult(0, "", "", {}, url)
+
+
+def _request_no_follow(url: str, timeout: int) -> tuple[int, dict[str, str]]:
+    """Return one response without following a Location header."""
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with _NO_REDIRECT_OPENER.open(request, timeout=timeout) as response:
+            return response.status, {k.lower(): v for k, v in response.headers.items()}
+    except urllib.error.HTTPError as exc:
+        headers = {k.lower(): v for k, v in exc.headers.items()} if exc.headers else {}
+        return exc.code, headers
+    except (urllib.error.URLError, TimeoutError, OSError):
+        return 0, {}
+
+
+def trace_redirects(url: str, timeout: int = 20, max_hops: int = 10,
+                    requester: Callable[[str, int], tuple[int, dict[str, str]]] | None = None
+                    ) -> dict[str, Any]:
+    """Trace redirects without losing the initial response evidence.
+
+    ``requester`` is injectable for offline tests. The returned chain holds
+    one entry per request, including the final non-redirect response.
+    """
+    requester = requester or _request_no_follow
+    requested_url = url
+    current_url = url
+    seen = {url}
+    chain: list[dict[str, Any]] = []
+    loop = False
+    broken_location = False
+
+    for _ in range(max_hops + 1):
+        status, headers = requester(current_url, timeout)
+        location = headers.get("location", "")
+        resolved_location = urllib.parse.urljoin(current_url, location) if location else ""
+        chain.append({"url": current_url, "status": status,
+                      "location": location or None,
+                      "resolved_location": resolved_location or None})
+
+        if status not in REDIRECT_STATUSES:
+            break
+        if not location:
+            broken_location = True
+            break
+        if resolved_location in seen:
+            loop = True
+            break
+        seen.add(resolved_location)
+        current_url = resolved_location
+    else:
+        # The trace exhausted its hop limit while still redirecting.
+        loop = True
+
+    final = chain[-1] if chain else {"url": requested_url, "status": 0}
+    redirect_count = sum(1 for hop in chain if hop["status"] in REDIRECT_STATUSES)
+    if broken_location:
+        verdict = "broken_location"
+    elif loop:
+        verdict = "loop_or_limit"
+    elif final["status"] == 0:
+        verdict = "request_failed"
+    elif final["status"] != 200:
+        verdict = "non_200_final"
+    elif redirect_count > 1:
+        verdict = "redirect_chain"
+    else:
+        verdict = "ok"
+    return {
+        "requested_url": requested_url,
+        "initial_status": chain[0]["status"] if chain else 0,
+        "final_url": final["url"],
+        "final_status": final["status"],
+        "redirect_count": redirect_count,
+        "chain": chain,
+        "loop": loop,
+        "broken_location": broken_location,
+        "verdict": verdict,
+    }
+
+
+def _normal_url(url: str) -> str:
+    parts = urllib.parse.urlsplit(url)
+    path = parts.path or "/"
+    return urllib.parse.urlunsplit((parts.scheme.lower(), parts.netloc.lower(),
+                                    path, parts.query, ""))
+
+
+def canonical_variant_audit(canonical_url: str, timeout: int = 20,
+                            max_hops: int = 10,
+                            requester: Callable[[str, int], tuple[int, dict[str, str]]] | None = None
+                            ) -> dict[str, Any]:
+    """Trace http/https and www/non-www home/path variants against a canonical."""
+    parsed = urllib.parse.urlsplit(canonical_url)
+    bare_host = parsed.netloc.lower().removeprefix("www.")
+    path = parsed.path or "/"
+    suffix = ("?" + parsed.query) if parsed.query else ""
+    variants = [
+        f"http://{bare_host}{path}{suffix}",
+        f"http://www.{bare_host}{path}{suffix}",
+        f"https://{bare_host}{path}{suffix}",
+        f"https://www.{bare_host}{path}{suffix}",
+    ]
+    expected = _normal_url(canonical_url)
+    results = []
+    for variant in dict.fromkeys(variants):
+        trace = trace_redirects(variant, timeout, max_hops, requester)
+        same_as_canonical = _normal_url(variant) == expected
+        final_matches = _normal_url(trace["final_url"]) == expected
+        if trace["loop"] or trace["broken_location"]:
+            canonical_verdict = trace["verdict"]
+        elif trace["final_status"] != 200:
+            canonical_verdict = "non_200_final"
+        elif not same_as_canonical and trace["initial_status"] not in REDIRECT_STATUSES:
+            canonical_verdict = "variant_direct_200"
+        elif not final_matches:
+            canonical_verdict = "wrong_final_url"
+        elif same_as_canonical and trace["redirect_count"] == 0:
+            canonical_verdict = "canonical_200"
+        elif trace["redirect_count"] > 1:
+            canonical_verdict = "redirect_chain"
+        else:
+            canonical_verdict = "redirect_ok"
+        trace["canonical_verdict"] = canonical_verdict
+        trace["final_matches_canonical"] = final_matches
+        results.append(trace)
+
+    failures = {"loop_or_limit", "broken_location", "non_200_final",
+                "wrong_final_url", "variant_direct_200", "request_failed"}
+    chains = sum(1 for result in results
+                 if result["canonical_verdict"] == "redirect_chain")
+    return {
+        "canonical_url": expected,
+        "variants": results,
+        "overall_verdict": "failure" if any(
+            result["canonical_verdict"] in failures for result in results
+        ) else "needs_chain_cleanup" if chains else "healthy",
+        "redirect_chains": chains,
+    }
 
 
 class RateLimiter:
@@ -643,8 +809,13 @@ def crawl(start_url: str, max_pages: int, delay: float, timeout: int,
                     "depth": depth}
         limiter.wait()
         result = fetch(url, timeout)
-        record: dict[str, Any] = {"url": url, "status": result.status,
-                                  "depth": depth}
+        record: dict[str, Any] = {
+            "url": url,
+            "requested_url": url,
+            "final_url": result.final_url or url,
+            "status": result.status,
+            "depth": depth,
+        }
         if result.status == 200 and "html" in result.content_type.lower():
             parser = PageParser()
             try:
@@ -737,8 +908,26 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-sitemap-check", action="store_true")
     parser.add_argument("--no-dup-check", action="store_true")
     parser.add_argument("--no-probe", action="store_true")
+    parser.add_argument("--trace-redirects", action="store_true",
+                        help="trace this URL without following redirect evidence")
+    parser.add_argument("--canonical-variants", action="store_true",
+                        help="trace http/https and www/non-www variants against --url")
+    parser.add_argument("--max-redirects", type=int, default=10,
+                        help="redirect hop cap for trace modes (default 10)")
     parser.add_argument("--pretty", action="store_true")
     args = parser.parse_args(argv)
+
+    if args.canonical_variants:
+        result = canonical_variant_audit(args.url, args.timeout,
+                                         args.max_redirects)
+        print(json.dumps(result, indent=2 if args.pretty else None,
+                         ensure_ascii=False))
+        return 0
+    if args.trace_redirects:
+        result = trace_redirects(args.url, args.timeout, args.max_redirects)
+        print(json.dumps(result, indent=2 if args.pretty else None,
+                         ensure_ascii=False))
+        return 0
 
     result = crawl(args.url, args.max_pages, args.delay, args.timeout,
                    respect_robots=not args.ignore_robots,

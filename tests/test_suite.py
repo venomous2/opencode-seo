@@ -44,6 +44,7 @@ import seo_lint  # noqa: E402
 import seo_pr_check  # noqa: E402
 import spa_detect  # noqa: E402
 import sxo_analyser  # noqa: E402
+import site_crawler  # noqa: E402
 import watch  # noqa: E402
 
 
@@ -2147,3 +2148,97 @@ class TestSxoAnalyser:
         assert result["keyword"] is None
         assert result["keyword_candidate"] == "coffee grinder"
         assert result["keyword_confirmation_required"] is True
+
+
+# ---------------------------------------------------------------------------
+# redirect tracing
+# ---------------------------------------------------------------------------
+
+class TestRedirectTracing:
+    @staticmethod
+    def requester(responses):
+        def request(url, timeout):
+            return responses.get(url, (0, {}))
+        return request
+
+    def test_one_hop_trace_preserves_initial_301(self):
+        trace = site_crawler.trace_redirects(
+            "http://example.com/", requester=self.requester({
+                "http://example.com/": (301, {"location": "https://www.example.com/"}),
+                "https://www.example.com/": (200, {}),
+            }))
+        assert trace["initial_status"] == 301
+        assert trace["final_url"] == "https://www.example.com/"
+        assert trace["final_status"] == 200
+        assert trace["redirect_count"] == 1
+        assert trace["verdict"] == "ok"
+
+    def test_chain_is_not_misreported_as_direct_200(self):
+        trace = site_crawler.trace_redirects(
+            "http://qcs.co.uk/", requester=self.requester({
+                "http://qcs.co.uk/": (301, {"location": "http://www.qcs.co.uk/"}),
+                "http://www.qcs.co.uk/": (301, {"location": "https://www.qcs.co.uk/"}),
+                "https://www.qcs.co.uk/": (200, {}),
+            }))
+        assert [hop["status"] for hop in trace["chain"]] == [301, 301, 200]
+        assert trace["redirect_count"] == 2
+        assert trace["verdict"] == "redirect_chain"
+
+    def test_loop_and_missing_location_are_explicit(self):
+        loop = site_crawler.trace_redirects(
+            "https://example.com/a", requester=self.requester({
+                "https://example.com/a": (301, {"location": "/b"}),
+                "https://example.com/b": (301, {"location": "/a"}),
+            }))
+        assert loop["loop"] is True
+        assert loop["verdict"] == "loop_or_limit"
+
+        broken = site_crawler.trace_redirects(
+            "https://example.com/a", requester=self.requester({
+                "https://example.com/a": (301, {}),
+            }))
+        assert broken["broken_location"] is True
+        assert broken["verdict"] == "broken_location"
+
+    def test_canonical_variant_audit_distinguishes_chain_from_failure(self):
+        responses = {
+            "http://example.com/": (301, {"location": "http://www.example.com/"}),
+            "http://www.example.com/": (301, {"location": "https://www.example.com/"}),
+            "https://example.com/": (301, {"location": "https://www.example.com/"}),
+            "https://www.example.com/": (200, {}),
+        }
+        audit = site_crawler.canonical_variant_audit(
+            "https://www.example.com/", requester=self.requester(responses))
+        verdicts = {r["requested_url"]: r["canonical_verdict"]
+                    for r in audit["variants"]}
+        assert audit["overall_verdict"] == "needs_chain_cleanup"
+        assert verdicts["http://example.com/"] == "redirect_chain"
+        assert verdicts["https://example.com/"] == "redirect_ok"
+        assert verdicts["https://www.example.com/"] == "canonical_200"
+
+    def test_canonical_variant_audit_flags_variant_direct_200(self):
+        responses = {
+            "http://example.com/": (200, {}),
+            "http://www.example.com/": (301, {"location": "https://www.example.com/"}),
+            "https://example.com/": (301, {"location": "https://www.example.com/"}),
+            "https://www.example.com/": (200, {}),
+        }
+        audit = site_crawler.canonical_variant_audit(
+            "https://www.example.com/", requester=self.requester(responses))
+        assert audit["overall_verdict"] == "failure"
+        assert any(r["canonical_verdict"] == "variant_direct_200"
+                   for r in audit["variants"])
+
+    def test_crawl_record_keeps_requested_and_final_url(self, monkeypatch):
+        monkeypatch.setattr(
+            site_crawler, "fetch",
+            lambda url, timeout: site_crawler.FetchResult(
+                200, "text/html", "<html><body><h1>Hi</h1></body></html>",
+                {}, "https://www.example.com/"))
+        result = site_crawler.crawl(
+            "http://example.com/", max_pages=1, delay=0, timeout=1,
+            respect_robots=False, sitemap_check=False, dup_check=False,
+            probe=False)
+        page = result["pages"][0]
+        assert page["requested_url"] == "http://example.com/"
+        assert page["final_url"] == "https://www.example.com/"
