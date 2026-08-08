@@ -5,13 +5,13 @@ and commands.
 
 ## Layer 1 — Skills (`.opencode/skills/<name>/SKILL.md`)
 
-87 skills in three tiers:
+88 skills in three tiers:
 
 **Orchestrator** — `seo-suite` is the entry point. It detects user intent,
 verifies the data layer (`seo_config.py status`), loads project memory, and
 routes to a workflow or atomic skill.
 
-**Workflows (6)** — chain atomic skills and dispatch specialist agents for
+**Workflows (7)** — chain atomic skills and dispatch specialist agents for
 end-to-end jobs:
 
 | Workflow | Chains |
@@ -22,6 +22,7 @@ end-to-end jobs:
 | `workflow-content-refresh` | inventory → decay detection → overlap scan → triage → refresh specs → queue |
 | `workflow-migration` | pre-launch baselines + redirect map → launch-day checks → post-launch drift monitoring |
 | `workflow-quarterly-review` | drift diffs + GSC/GA4 trends + decay triage → wins/losses narrative → next-quarter plan |
+| `workflow-sxo` | deterministic page type + live SERP consensus → experience baseline → implementation blueprint → measured backlog |
 
 **Atomic skills (80)** — each does one focused job. Grouped into 8
 collections (Foundation, Content Strategy, Content Optimization, Technical,
@@ -62,6 +63,7 @@ score) so the orchestrator can synthesize a 0-100 site score.
 | `event_log.py` | Per-domain event timeline (JSONL): findings raised/resolved, lint saves, drift snapshots, manual notes — the chronological feed behind the dashboard and briefing |
 | `project_dashboard.py` | Mission-control HTML dashboard: aggregates recommendation queue + drift health + event timeline + cost ledger into one branded page via report_build |
 | `watch.py` | Scheduled monitoring bundle (daily/weekly profiles): lint → store, rankings diff → loss/recovery recommendations, competitor growth flags, backlinks + AI visibility into drift; `schedule` prints Task Scheduler/cron lines |
+| `sxo_analyser.py` | Deterministic SXO baseline: page-type candidates, live SERP consensus, SERP-fit verdict and existing CRO/accessibility experience scores; persists high-confidence mismatch recommendations |
 | `seo_forecast.py` | Honest click forecasting: volume × position-CTR with a printed uncertainty band and every assumption in the output; can snapshot the scenario into drift |
 | `impact_report.py` | Change-impact analysis: joins completed recommendations to bracketing drift snapshots (keyword/URL movement) with association-not-causation verdicts |
 | `site_crawler.py` | Built-in concurrent crawler (v2): sitemap cross-check, near-duplicate detection, soft-404 probe, anchors, OG/Twitter, mixed content, security headers |

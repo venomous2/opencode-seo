@@ -43,6 +43,7 @@ site", "why don't I rank for X" — the `seo-suite` orchestrator routes you.
 | `/keyword-gap <domain>` | Keywords competitors rank for and you don't | Low |
 | `/new-post <topic>` | Research → publish-ready content brief | Low |
 | `/content-refresh <domain>` | Triage decaying/thin/overlapping content | Medium |
+| `/sxo <url> <keyword> <task>` | SERP-fit, landing experience and task-completion analysis | Low |
 | `/compare <domain> <rival>` | Side-by-side: authority, keywords, gaps, readiness | Low |
 | `/cro <url>` | Conversion audit: deterministic checks + experiment plan | Low |
 | `/citation-check <url>` | AI citation readiness score (+ mention baseline) | Low |
@@ -50,6 +51,23 @@ site", "why don't I rank for X" — the `seo-suite` orchestrator routes you.
 
 Typical DataForSEO spend for a full weekly monitoring run: a few pence.
 Every billed call is ledgered — see the cost ledger below.
+
+## SXO: does the landing experience match the search?
+
+Use `/sxo` when a page is technically sound but fails to rank, satisfy the
+searcher or convert. It compares deterministic page type and experience
+signals with the **live SERP's page-type consensus**, then produces an
+evidence-labelled implementation blueprint.
+
+```text
+/sxo https://example.com/grinder-guide "best coffee grinder" buy
+```
+
+The SXO workflow distinguishes measured page/SERP facts from inferred
+searcher segments. It does not treat bounce rate as a direct Google ranking
+factor or pretend PAA-derived segments are validated customer personas.
+Read [SXO.md](SXO.md) for the full methodology, page-type classifier and
+first-party-data boundaries.
 
 ## The five stores
 

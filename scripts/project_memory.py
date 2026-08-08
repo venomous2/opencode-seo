@@ -36,6 +36,10 @@ site:
 audience:
   description: "Who the site serves"
   pain_points: []
+  # Optional validated SXO audience evidence. Do not invent personas from
+  # SERP signals alone; workflows label those as searcher segments.
+  personas: []
+  research_sources: []      # surveys, sales calls, support themes, reviews
 
 brand:
   voice: "clear, expert, friendly"
@@ -44,6 +48,10 @@ brand:
 goals:
   primary: "grow qualified organic signups"
   kpis: []
+  conversion:
+    primary_task: ""        # learn | compare | buy | signup | book | call | ...
+    primary_event: ""       # optional GA4 event name
+    guardrail_metrics: []
 
 competitors: []             # ["competitor1.com", "competitor2.com"]
 

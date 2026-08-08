@@ -43,6 +43,7 @@ import seo_forecast  # noqa: E402
 import seo_lint  # noqa: E402
 import seo_pr_check  # noqa: E402
 import spa_detect  # noqa: E402
+import sxo_analyser  # noqa: E402
 import watch  # noqa: E402
 
 
@@ -2027,3 +2028,107 @@ class TestSeoPrCheck:
         assert rc == 0
         summary = (tmp_path / "summary2.md").read_text(encoding="utf-8")
         assert "**PASS**" in summary
+
+
+# ---------------------------------------------------------------------------
+# sxo_analyser
+# ---------------------------------------------------------------------------
+
+class TestSxoAnalyser:
+    @pytest.fixture(autouse=True)
+    def temp_stores(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(recommend_store, "RECS_DIR", tmp_path / "recs")
+        monkeypatch.setattr(event_log, "EVENTS_DIR", tmp_path / "events")
+        yield
+
+    @staticmethod
+    def product_page():
+        return {
+            "url": "https://shop.example.com/products/grinder",
+            "title": "Buy a Coffee Grinder", "h1": ["Coffee Grinder"],
+            "h2": [], "schema_types": ["Product", "Offer"],
+            "tables_total": 0, "cta_count": 1, "form_count": 0,
+            "word_count": 450, "tel_links": 0,
+        }
+
+    @staticmethod
+    def article_page():
+        return {
+            "url": "https://example.com/blog/grinder-guide",
+            "title": "Coffee Grinder Guide", "h1": ["Coffee Grinder Guide"],
+            "h2": ["How to choose"], "schema_types": ["Article"],
+            "tables_total": 0, "cta_count": 0, "form_count": 0,
+            "word_count": 1200, "tel_links": 0,
+            "time_elements": ["2026-01-01"], "meta_author": "Lee",
+        }
+
+    @staticmethod
+    def product_serp():
+        items = []
+        for n in range(6):
+            items.append({"type": "organic",
+                          "url": f"https://shop{n}.example.com/products/grinder",
+                          "title": "Buy Coffee Grinder - Shop"})
+        for n in range(2):
+            items.append({"type": "organic",
+                          "url": f"https://guide{n}.example.com/blog/grinder-guide",
+                          "title": "Coffee Grinder Guide"})
+        items.append({"type": "people_also_ask", "title": "What grinder?"})
+        return {"result": [[{"items": items}]]}
+
+    def test_classifies_product_and_hybrid(self):
+        product = sxo_analyser.classify_page(self.product_page())
+        assert product["primary"] == "product"
+        assert product["confidence"] == "high"
+
+        hybrid = self.article_page()
+        hybrid.update({"cta_count": 2, "form_count": 1, "word_count": 700})
+        classified = sxo_analyser.classify_page(hybrid)
+        assert classified["primary"] == "hybrid"
+        assert "strong editorial and conversion signals" in classified["evidence"]
+
+    def test_serp_consensus_and_alignment(self):
+        consensus = sxo_analyser.serp_consensus(self.product_serp())
+        assert consensus["organic_results"] == 8
+        assert consensus["dominant_type"] == "product"
+        assert consensus["dominant_share"] == 0.75
+        assert consensus["verdict"] == "strong_consensus"
+        assert consensus["features"]["people_also_ask"] == 1
+
+        target = sxo_analyser.classify_page(self.article_page())
+        fit = sxo_analyser.alignment(target, consensus)
+        assert fit["status"] == "mismatch"
+        assert fit["score"] == 35
+
+    def test_analysis_labels_missing_first_party_evidence(self):
+        result = sxo_analyser.analyse(self.article_page(),
+                                      "coffee grinder", self.product_serp())
+        assert result["serp_fit"]["status"] == "mismatch"
+        assert result["experience_baseline"]["conversion_readiness"]["rules"] == 10
+        assert result["evidence_coverage"]["first_party_outcomes"] is False
+
+    def test_file_cli_saves_high_confidence_mismatch(self, tmp_path, capsys):
+        page = tmp_path / "guide.html"
+        page.write_text(
+            "<html><head><script type=\"application/ld+json\">"
+            '{"@context":"https://schema.org","@type":"Article"}'
+            "</script></head><body><h1>Coffee Grinder Guide</h1>"
+            "<time>2026-01-01</time></body></html>", encoding="utf-8")
+        serp = tmp_path / "serp.json"
+        serp.write_text(json.dumps(self.product_serp()), encoding="utf-8")
+
+        rc = sxo_analyser.main(["--file", str(page), "--serp-file", str(serp),
+                                "--domain", "example.com", "--save"])
+        assert rc == 0
+        output = json.loads(capsys.readouterr().out)
+        assert output["serp_fit"]["status"] == "mismatch"
+        assert output["recommendation_saved"]["status"] == "open"
+        recs = recommend_store.list_recs("example.com")
+        assert len(recs) == 1
+        assert recs[0]["source"] == "workflow:sxo"
+
+    def test_keyword_candidate_is_not_a_confirmed_keyword(self):
+        result = sxo_analyser.analyse(self.article_page())
+        assert result["keyword"] is None
+        assert result["keyword_candidate"] == "coffee grinder"
+        assert result["keyword_confirmation_required"] is True

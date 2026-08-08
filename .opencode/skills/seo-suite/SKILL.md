@@ -46,6 +46,7 @@ Use these when the user wants an end-to-end job, not a single check:
 | User intent | Workflow skill |
 |---|---|
 | Morning briefing, "what should I do today", dashboard, CEO mode | `seo-briefing` |
+| SXO, search experience, page-type mismatch, wrong landing experience | `workflow-sxo` |
 | Full site audit, "audit my site", health check | `workflow-site-audit` |
 | New blog post / article from scratch | `workflow-new-content` |
 | Launch an ecommerce category or product line | `workflow-ecommerce-launch` |
@@ -66,6 +67,7 @@ Use these when the user wants an end-to-end job, not a single check:
 | Competitive | `competitor-audit`, `serp-analysis`, `keyword-gap`, `backlink-opportunity-planner`, `content-opportunity-finder`, `topical-coverage-comparison` |
 | Local & Commerce | `local-seo`, `gbp-advisor`, `ecommerce-seo`, `product-page-optimizer`, `category-page-optimizer` |
 | Growth & PR | `digital-pr-planner`, `programmatic-seo`, `news-seo`, `video-seo`, `parasite-seo-check` |
+| Experience | `workflow-sxo`, `cro-audit`, `accessibility-audit` |
 | Monitoring | `seo-drift`, `seo-briefing` |
 | Automation | `seo-report-writer`, `seo-project-planner`, `seo-task-generator`, `seo-checklist-generator`, `seo-roadmap-builder` |
 

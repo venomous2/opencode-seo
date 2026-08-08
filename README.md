@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/venomous2/opencode-seo/actions/workflows/ci.yml/badge.svg)](https://github.com/venomous2/opencode-seo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-190%20passing-brightgreen)](tests)
+[![Tests](https://img.shields.io/badge/tests-195%20passing-brightgreen)](tests)
 [![Rules](https://img.shields.io/badge/rules-54%20self--testing-00E0BA)](rules)
 [![Models](https://img.shields.io/badge/models-400%2B-blueviolet)](https://openrouter.ai/)
 
@@ -33,6 +33,8 @@ You don't need to memorise commands. Talk to OpenCode naturally:
 > What should I publish next in the coffee niche?
 >
 > How visible am I in ChatGPT and Perplexity?
+>
+> Does this landing page match what people expect for "CRM pricing"?
 >
 > Fix the SEO issues on my pricing page
 >
@@ -136,8 +138,12 @@ Full guide: [INSTALL.md](INSTALL.md) · Credentials: [docs/DATAFORSEO-SETUP.md](
 /keyword-gap example.com               # keywords competitors rank for, you don't
 /citation-check https://example.com/guide  # AI citation readiness
 /content-refresh example.com           # triage decaying content at scale
+/sxo https://example.com/guide "target keyword" buy  # SERP-fit + landing experience
 /schema article                        # generate JSON-LD
 ```
+
+SXO methodology, evidence boundaries and page-type classification:
+[docs/SXO.md](docs/SXO.md).
 
 ## Fail bad SEO in CI
 
@@ -175,8 +181,8 @@ monitoring, and the report you actually send the client.
 
 | Metric | Value |
 |---|---|
-| Skills | 87 |
-| Slash commands | 11 |
+| Skills | 88 |
+| Slash commands | 12 |
 | Deterministic rules | 54 (self-testing, YAML) |
 | Specialist agents | 4 (run in parallel) |
 | DataForSEO endpoints | 17 instant + full crawl |
@@ -196,6 +202,7 @@ monitoring, and the report you actually send the client.
 | **Competitive** | `competitor-audit` `serp-analysis` `keyword-gap` `backlink-opportunity-planner` `content-opportunity-finder` `topical-coverage-comparison` |
 | **Local & Commerce** | `local-seo` `gbp-advisor` `ecommerce-seo` `product-page-optimizer` `category-page-optimizer` |
 | **Growth & PR** | `digital-pr-planner` `programmatic-seo` `news-seo` `video-seo` `parasite-seo-check` |
+| **Experience** | `workflow-sxo` `cro-audit` `accessibility-audit` |
 | **Monitoring** | `seo-drift` `seo-briefing` |
 | **Automation** | `seo-report-writer` `seo-project-planner` `seo-task-generator` `seo-checklist-generator` `seo-roadmap-builder` |
 
@@ -219,6 +226,7 @@ You (chat / slash commands)
   |-- drift_store.py    Snapshots + diffs
   |-- recommend_store.py  Task queue with lifecycle
   |-- watch.py          Scheduled monitoring
+  |-- sxo_analyser.py   Page-type + live SERP-fit baseline
   +-- project_memory.py Project context
 ```
 

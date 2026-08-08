@@ -3,6 +3,36 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.20.0] - 2026-08-02
+
+Search Experience Optimisation (SXO) workflow.
+
+### Added
+- **`workflow-sxo` + `/sxo`** — evidence-first Search Experience
+  Optimisation: target URL, confirmed keyword and intended visitor task →
+  deterministic page type + live SERP consensus → CRO/accessibility
+  baseline → evidence-bound searcher segments → mobile-first implementation
+  blueprint → persisted recommendation backlog
+- **`sxo_analyser.py`** — deterministic, SPA-aware page-type classifier
+  (product, comparison, local, tool, service, article, landing, hybrid),
+  live DataForSEO SERP consensus, SERP-fit verdict, reused CRO/accessibility
+  scores and evidence-coverage label. `--save` persists only a
+  high-confidence page-type mismatch; a title/H1 candidate never triggers a
+  paid SERP pull until the user confirms it
+- **`docs/SXO.md`** — how to use SXO, page-type evidence, scorecard,
+  searcher-segment boundaries, implementation-blueprint format and the
+  distinction from CRO
+- Project memory gains optional validated-audience/research and conversion
+  fields for SXO work
+- 5 deterministic tests (195 total): page types, SERP consensus/alignment,
+  evidence boundaries, persisted mismatch and keyword-candidate safety
+
+### Design note
+SXO reports what was measured, inferred and unavailable separately. It
+does not present PAA-derived segments as validated personas, engagement
+metrics as direct Google ranking factors, or a single 0-100 score as
+business truth.
+
 ## [0.19.3] - 2026-08-02
 
 Branded report template overhaul.
