@@ -335,19 +335,20 @@ def _severity_badge(cell_html: str, raw: str) -> str:
     return cell_html
 
 
-def _extract_score(markdown: str) -> tuple[int | None, str]:
+def _extract_score(markdown: str) -> tuple[float | None, str]:
     """Extract overall score and summary from markdown content."""
     # Look for patterns like "59/100", "Score: 59", "Overall: 59"
     patterns = [
-        r"(?:overall|total|score|rating)[:\s]*(\d{1,3})\s*(?:/\s*100|out of 100)?",
-        r"(\d{1,3})\s*/\s*100",
-        r"(\d{1,3})\s*out of\s*100",
+        r"(?:overall|total|score|rating)[:\s]*(\d{1,3}(?:\.\d+)?)\s*(?:/\s*100|out of 100)?",
+        r"(?<![\d.])(\d{1,3}(?:\.\d+)?)\s*/\s*100",
+        r"(?<![\d.])(\d{1,3}(?:\.\d+)?)\s*out of\s*100",
     ]
     for pattern in patterns:
         m = re.search(pattern, markdown, re.I)
         if m:
-            score = int(m.group(1))
+            score = float(m.group(1))
             if 0 <= score <= 100:
+                score = int(score) if score.is_integer() else score
                 # Try to extract summary from first paragraph after score.
                 # Skip markdown syntax lines (headings, tables, fences,
                 # lists) so structural markup can't bleed into the summary.
@@ -545,15 +546,13 @@ SHELL = """<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
-<link rel="preconnect" href="https://fonts.bunny.net">
-<link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800|space-grotesk:400,500,600,700,800" rel="stylesheet">
 <style>
   :root {{ --navy: {navy}; --emerald: {emerald}; --orange: {orange};
            --dark: {dark}; --white: #FFFFFF; --gray-50: #F9FAFB;
            --gray-100: #F3F4F6; --gray-200: #E5E7EB; --gray-500: #6B7280;
            --gray-600: #4B5563; --gray-700: #374151; --gray-900: #111827; }}
   * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-  body {{ font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  body {{ font-family: Arial, Helvetica, sans-serif;
          color: var(--gray-700); line-height: 1.6; background: var(--white); }}
   .container {{ max-width: 1000px; margin: 0 auto; padding: 0 40px; }}
   .report-header {{ background: linear-gradient(135deg, var(--dark) 0%, var(--navy) 100%);
@@ -565,7 +564,7 @@ SHELL = """<!DOCTYPE html>
                  border-radius: 10px; display: flex; align-items: center;
                  justify-content: center; font-size: 24px; font-weight: 800;
                  color: var(--white); border: 2px solid rgba(255,255,255,0.15); }}
-  .brand-name {{ font-family: 'Space Grotesk', sans-serif; font-size: 22px;
+   .brand-name {{ font-family: Arial, Helvetica, sans-serif; font-size: 22px;
                  font-weight: 700; }}
   .brand-role {{ font-size: 13px; color: rgba(255,255,255,0.6); }}
   .report-meta {{ text-align: right; }}
@@ -588,11 +587,13 @@ SHELL = """<!DOCTYPE html>
   .score-circle::after {{ content: ''; width: 130px; height: 130px;
                           background: var(--white); border-radius: 50%;
                           position: absolute; }}
-  .score-value {{ position: relative; z-index: 1;
-                  font-family: 'Space Grotesk', sans-serif; font-size: 48px;
-                  font-weight: 800; color: var(--dark); }}
-  .score-value span {{ font-size: 20px; color: var(--gray-500); }}
-  .score-summary h2 {{ font-family: 'Space Grotesk', sans-serif; font-size: 24px;
+   .score-value {{ position: relative; z-index: 1;
+                   font-family: Arial, Helvetica, sans-serif; font-size: 48px;
+                   font-weight: 800; color: var(--dark); }}
+   .score-value span {{ font-size: 20px; color: var(--gray-500); }}
+   .score-value.decimal {{ font-size: 38px; }}
+   .score-value.decimal span {{ font-size: 16px; }}
+   .score-summary h2 {{ font-family: Arial, Helvetica, sans-serif; font-size: 24px;
                        font-weight: 700; color: var(--dark); margin-bottom: 12px; }}
   .score-summary p {{ color: var(--gray-600); line-height: 1.7; }}
   .findings-count {{ display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }}
@@ -604,10 +605,10 @@ SHELL = """<!DOCTYPE html>
   .tag-low {{ background: #D1FAE5; color: #065F46; }}
   .content {{ padding: 48px 0; }}
   .section {{ margin-bottom: 48px; }}
-  .section-title {{ font-family: 'Space Grotesk', sans-serif; font-size: 20px;
+   .section-title {{ font-family: Arial, Helvetica, sans-serif; font-size: 20px;
                     font-weight: 700; color: var(--dark); padding-bottom: 12px;
                     border-bottom: 2px solid var(--dark); margin-bottom: 24px; }}
-  h3 {{ font-family: 'Space Grotesk', sans-serif; font-size: 16px;
+   h3 {{ font-family: Arial, Helvetica, sans-serif; font-size: 16px;
         font-weight: 600; color: var(--dark); margin-bottom: 12px; }}
   p {{ margin-bottom: 16px; }}
   table {{ width: 100%; border-collapse: collapse; margin-bottom: 24px; }}
@@ -655,7 +656,7 @@ SHELL = """<!DOCTYPE html>
   .next-step {{ background: linear-gradient(135deg, var(--dark) 0%, var(--navy) 100%);
                 border-radius: 12px; padding: 32px; color: var(--white); margin: 32px 0; }}
   .next-step h3 {{ color: var(--emerald); margin-bottom: 8px;
-                   font-family: 'Space Grotesk', sans-serif; }}
+                   font-family: Arial, Helvetica, sans-serif; }}
   .next-step p {{ color: rgba(255,255,255,0.8); margin-bottom: 0; }}
   .stats-row {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
                 gap: 16px; margin-bottom: 48px; }}
@@ -667,7 +668,7 @@ SHELL = """<!DOCTYPE html>
   .stat-card:nth-child(4) {{ border-top-color: var(--emerald); }}
   .stat-card:nth-child(5) {{ border-top-color: var(--navy); }}
   .stat-card:nth-child(6) {{ border-top-color: var(--orange); }}
-  .stat-value {{ font-family: 'Space Grotesk', sans-serif; font-size: 28px;
+   .stat-value {{ font-family: Arial, Helvetica, sans-serif; font-size: 28px;
                  font-weight: 800; color: var(--dark); }}
   .stat-label {{ font-size: 11px; text-transform: uppercase;
                  letter-spacing: 0.08em; color: var(--gray-500); margin-top: 4px; }}
@@ -678,7 +679,7 @@ SHELL = """<!DOCTYPE html>
                   border-top: 4px solid var(--emerald); }}
   .roadmap-col:nth-child(2) {{ border-top-color: var(--navy); }}
   .roadmap-col:nth-child(3) {{ border-top-color: var(--orange); }}
-  .roadmap-col h4 {{ font-family: 'Space Grotesk', sans-serif; font-size: 14px;
+   .roadmap-col h4 {{ font-family: Arial, Helvetica, sans-serif; font-size: 14px;
                      font-weight: 700; color: var(--dark); margin-bottom: 16px;
                      text-transform: uppercase; letter-spacing: 0.05em; }}
   .roadmap-col ol {{ padding-left: 20px; font-size: 13px; color: var(--gray-600);
@@ -734,7 +735,9 @@ SHELL = """<!DOCTYPE html>
   body.onepager .score-grid {{ gap: 24px; }}
   body.onepager .score-circle {{ width: 100px; height: 100px; }}
   body.onepager .score-circle::after {{ width: 80px; height: 80px; }}
-  body.onepager .score-value {{ font-size: 32px; }}
+   body.onepager .score-value {{ font-size: 32px; }}
+   body.onepager .score-value.decimal {{ font-size: 27px; }}
+   body.onepager .score-value.decimal span {{ font-size: 12px; }}
   body.onepager .section {{ margin-bottom: 24px; }}
   body.onepager .stats-row {{ margin-bottom: 24px; }}
   body.onepager .roadmap-grid {{ gap: 12px; }}
@@ -803,7 +806,7 @@ def _extract_domain(title: str) -> str:
     return m.group(1) if m else ""
 
 
-def _build_score_section(score: int | None, summary: str,
+def _build_score_section(score: float | None, summary: str,
                          severity_counts: dict[str, int]) -> str:
     """Build the score section HTML."""
     if score is None:
@@ -812,6 +815,9 @@ def _build_score_section(score: int | None, summary: str,
     score_colour = EMERALD if score >= 70 else (ORANGE if score >= 40 else "#F59E0B")
     score_deg = score * 3.6
     score_deg_plus = min(score_deg + 53, 360)
+    score_display = f"{score:g}"
+    score_class = "score-value decimal" if isinstance(score, float) \
+        and not score.is_integer() else "score-value"
 
     summary_html = html.escape(summary) if summary else ""
 
@@ -827,10 +833,10 @@ def _build_score_section(score: int | None, summary: str,
     <div class="score-grid">
       <div class="score-circle" style="--score-colour:{score_colour};
            --score-deg:{score_deg}deg; --score-deg-plus:{score_deg_plus}deg;">
-        <div class="score-value">{score}<span>/100</span></div>
+        <div class="{score_class}">{score_display}<span>/100</span></div>
       </div>
       <div class="score-summary">
-        <h2>Overall Score: {score}/100</h2>
+        <h2>Overall Score: {score_display}/100</h2>
         <p>{summary_html}</p>
         <div class="findings-count">{tags_html}</div>
       </div>

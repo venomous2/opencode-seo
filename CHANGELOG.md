@@ -3,6 +3,25 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.20.1] - 2026-08-08
+
+Branded PDF report rendering repair.
+
+### Fixed
+- Reports rendered through Edge/Chrome headless from local HTML no longer
+  use externally hosted Bunny font faces. Those faces produced blank glyphs
+  in the browser PDF/local-file pipeline: layout, charts and cards rendered
+  but every data value and finding disappeared. The template now uses a
+  self-contained Arial/Helvetica stack, so HTML, full PDF and executive
+  one-pager remain readable without network access
+- Decimal scores such as `60.6/100` no longer parse as `6/100` in the
+  branded score header. Decimal values now render at a compact size inside
+  the score circle without colliding with `/100`
+- Regenerated `docs/images/audit-report.png` and `dashboard.png` from the
+  repaired renderer, replacing the broken README visuals
+- Added regression coverage for the self-contained font stack and decimal
+  score extraction/layout (197 tests total)
+
 ## [0.20.0] - 2026-08-02
 
 Search Experience Optimisation (SXO) workflow.

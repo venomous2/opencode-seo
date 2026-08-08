@@ -1297,6 +1297,21 @@ class TestLogAnalyzer:
 # ---------------------------------------------------------------------------
 
 class TestReportBuild:
+    def test_template_uses_self_contained_font_stack(self):
+        # Client PDFs are rendered from local files; remote web fonts can
+        # produce blank glyphs in headless browser PDF output.
+        assert "fonts.bunny.net" not in report_build.SHELL
+        assert "Arial, Helvetica, sans-serif" in report_build.SHELL
+
+    def test_decimal_score_extraction_does_not_drop_integer_part(self):
+        score, _ = report_build._extract_score(
+            "Overall SEO health: 60.6/100, up 3.6 points.")
+        assert score == 60.6
+        section = report_build._build_score_section(score, "", {})
+        assert "60.6/100" in section
+        assert "--score-deg:218.16deg" in section
+        assert 'class="score-value decimal"' in section
+
     def test_heading_and_bold(self):
         body, _ = report_build.md_to_html("## Hello\n\nSome **bold** text")
         assert "<h2 id=\"hello\">Hello</h2>" in body
