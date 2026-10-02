@@ -262,7 +262,3 @@ All of them. The rule engine and linting are deterministic Python — zero model
 ## License
 
 MIT — see [LICENSE](LICENSE).
-
----
-
-*Inspired by [`AgriciDaniel/claude-seo`](https://github.com/AgriciDaniel/claude-seo) — an original re-implementation for OpenCode, modified and extended by Lee Beirne (DataForSEO-mandatory data layer, three-layer architecture, project memory). All skill content is original; credit for the underlying concept goes to Agrici Daniel.*
