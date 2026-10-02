@@ -1,0 +1,103 @@
+name: SEO agent
+
+# Autonomous SEO loop: lint the repo's HTML, apply mechanical fixes from the
+# rule engine, and open a review-ready pull request. Copy this file into the
+# site repository (or call it from there) and set the repository variables:
+#
+#   SEO_AGENT_DOMAIN      e.g. example.com   (recommendation-store key)
+#   SEO_AGENT_BASE_URL    e.g. https://example.com
+#   SEO_AGENT_DIR         e.g. public        (HTML root; default .)
+#
+# Safety: every run is a dry-run unless SEOLINT/SEO_AGENT_OPEN_PR is enabled
+# via the manual input below. Draft copy (title/meta text) is included and
+# flagged in the PR body so a human reviews the wording before merge.
+#
+# Deterministic and offline: the rule engine runs on the files in the repo -
+# no API keys, no DataForSEO spend.
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"        # Mondays 06:17 UTC
+  workflow_dispatch:
+    inputs:
+      open_pr:
+        description: "Push a branch and open a PR (otherwise dry-run)"
+        type: boolean
+        default: true
+      mechanical_only:
+        description: "Skip draft patches (title/meta copy)"
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - "**/*.html"
+      - "**/*.htm"
+      - "rules/**"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: seo-agent-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    # Skip quietly until the repository is configured.
+    if: ${{ vars.SEO_AGENT_DOMAIN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run the autonomous agent
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SEO_REPORTS_DIR: ${{ runner.temp }}/seo-reports
+        run: |
+          # Scheduled runs open a PR (human review is the guardrail). Push
+          # runs stay dry-run so they never fight with a human's edits.
+          OPEN_PR=false
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            OPEN_PR=true
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.open_pr }}" = "true" ]; then
+            OPEN_PR=true
+          fi
+          EXTRA=""
+          if [ "$OPEN_PR" = "true" ]; then
+            EXTRA="$EXTRA --pr"
+          fi
+          if [ "${{ inputs.mechanical_only }}" = "true" ]; then
+            EXTRA="$EXTRA --mechanical-only"
+          fi
+          python scripts/seo_agent.py run \
+            --dir "${{ vars.SEO_AGENT_DIR || '.' }}" \
+            --domain "${{ vars.SEO_AGENT_DOMAIN }}" \
+            --base-url "${{ vars.SEO_AGENT_BASE_URL }}" \
+            --base-branch "${{ github.event.repository.default_branch }}" \
+            $EXTRA
+
+      - name: Publish the brief
+        if: always()
+        env:
+          SEO_REPORTS_DIR: ${{ runner.temp }}/seo-reports
+        run: |
+          BRIEF=$(ls "$SEO_REPORTS_DIR/${{ vars.SEO_AGENT_DOMAIN }}"/*.md 2>/dev/null | head -1 || true)
+          if [ -n "$BRIEF" ]; then
+            cat "$BRIEF" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload the brief
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seo-agent-brief
+          path: ${{ runner.temp }}/seo-reports/
+          if-no-files-found: ignore

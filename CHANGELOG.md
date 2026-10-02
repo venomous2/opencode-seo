@@ -3,6 +3,34 @@
 All notable changes to the OpenCode SEO Suite are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.21.0] - 2026-10-02
+
+Autonomous SEO agent: the suite now closes the loop scan -> fix -> ship.
+
+### Added
+- **`scripts/seo_agent.py`** - orchestrator over the deterministic engine:
+  - `scan` lints every HTML page in a directory and labels each finding
+    NEW / PERSISTING / REGRESSED against the recommendation store's
+    fingerprint lifecycle (`recommend_store.replay`)
+  - `fix` resolves mechanical patches via `seo_fix` (`status: ready` only),
+    applies them with `.bak` backups, and re-lints to show the score delta;
+    `--mechanical-only` skips draft copy, `--apply` is required to write
+  - `ship` branches, commits only the patched files and opens a
+    review-ready PR via `gh`; dry-run prints the git commands by default
+  - `run` chains all three and writes the `SEO-AGENT-<domain>-<date>.md`
+    brief (pages, lifecycle findings, fixes, draft copy, one next step)
+    to `$SEO_REPORTS_DIR/<domain>/`, with the standard footer
+- **`.github/workflows/seo-agent.yml`** - weekly cron + manual dispatch +
+  push-triggered dry-run wrapper for site repositories; scheduled runs
+  open the PR, human review stays the merge guardrail
+- **`autonomous-seo-agent` skill** - recipe-contract procedure for driving
+  the agent conversationally (scope, preview, apply, schedule)
+- 12 deterministic offline tests (215 total): discovery filtering, URL
+  mapping, lifecycle classification, scan persistence, regression
+  labelling, patch application, draft handling, ship dry-run safety
+
+[0.21.0]: https://github.com/venomous2/opencode-seo/compare/v0.20.2...v0.21.0
+
 ## [0.20.2] - 2026-08-08
 
 Redirect tracing — initial response evidence, not final-response guesses.

@@ -37,6 +37,7 @@ import report_pdf  # noqa: E402
 import report_publish  # noqa: E402
 import rule_engine  # noqa: E402
 import schema_gen  # noqa: E402
+import seo_agent  # noqa: E402
 import seo_config  # noqa: E402
 import seo_fix  # noqa: E402
 import seo_forecast  # noqa: E402
@@ -2242,3 +2243,191 @@ class TestRedirectTracing:
         page = result["pages"][0]
         assert page["requested_url"] == "http://example.com/"
         assert page["final_url"] == "https://www.example.com/"
+
+
+# ---------------------------------------------------------------------------
+# seo_agent
+# ---------------------------------------------------------------------------
+
+AGENT_HTML = """<!DOCTYPE html>
+<html>
+<head><title>Test page</title></head>
+<body><h1>Test page</h1><p>Compare the best coffee grinders of 2026.</p></body>
+</html>
+"""
+
+
+class TestSeoAgent:
+    @pytest.fixture(autouse=True)
+    def temp_store(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(recommend_store, "RECS_DIR", tmp_path / "recs")
+        monkeypatch.setattr(event_log, "EVENTS_DIR", tmp_path / "events")
+        yield
+
+    def test_discover_html_skips_noise_dirs(self, tmp_path):
+        (tmp_path / "node_modules").mkdir()
+        (tmp_path / "node_modules" / "x.html").write_text("<html></html>")
+        (tmp_path / ".git").mkdir()
+        (tmp_path / ".git" / "y.html").write_text("<html></html>")
+        (tmp_path / "sub").mkdir()
+        (tmp_path / "sub" / "a.html").write_text("<html></html>")
+        (tmp_path / "index.html").write_text("<html></html>")
+        (tmp_path / "style.css").write_text("body{}")
+        found = seo_agent.discover_html(tmp_path)
+        assert sorted(p.name for p in found) == ["a.html", "index.html"]
+
+    def test_discover_html_respects_extra_excludes(self, tmp_path):
+        (tmp_path / "dist").mkdir()
+        (tmp_path / "dist" / "built.html").write_text("<html></html>")
+        (tmp_path / "index.html").write_text("<html></html>")
+        found = seo_agent.discover_html(tmp_path, extra_excludes=("dist",))
+        assert [p.name for p in found] == ["index.html"]
+
+    def test_page_url_for_maps_index_and_nested(self, tmp_path):
+        (tmp_path / "blog").mkdir()
+        idx = tmp_path / "index.html"
+        about = tmp_path / "about.html"
+        post = tmp_path / "blog" / "index.html"
+        for p in (idx, about, post):
+            p.write_text("<html></html>")
+        base = "https://example.com"
+        assert seo_agent.page_url_for(idx, tmp_path, base) == \
+            "https://example.com"
+        assert seo_agent.page_url_for(about, tmp_path, base) == \
+            "https://example.com/about.html"
+        assert seo_agent.page_url_for(post, tmp_path, base) == \
+            "https://example.com/blog"
+        assert seo_agent.page_url_for(about, tmp_path, "") == str(about)
+
+    def test_classify_labels_lifecycle(self):
+        domain = "example.com"
+        recommend_store.raise_rec(
+            domain, _rec(finding="missing-canonical",
+                         source="rule:missing-canonical"))
+        closed = recommend_store.raise_rec(
+            domain, _rec(finding="missing-viewport",
+                         source="rule:missing-viewport"))
+        recommend_store.set_status(domain, closed["id"], "done")
+        results = [{
+            "url": "https://example.com/", "path": "index.html",
+            "findings": [
+                {"id": "missing-canonical", "severity": "high",
+                 "why": "w", "fix": "f"},
+                {"id": "missing-viewport", "severity": "high",
+                 "why": "w", "fix": "f"},
+                {"id": "missing-title", "severity": "critical",
+                 "why": "w", "fix": "f"},
+            ],
+        }]
+        rows = seo_agent.classify(domain, results)
+        states = {r["rule"]: r["state"] for r in rows}
+        assert states["missing-canonical"] == "persisting"
+        assert states["missing-viewport"] == "regressed"
+        assert states["missing-title"] == "new"
+        assert rows[0]["rule"] == "missing-title"
+
+    def test_scan_persists_and_writes_brief(self, tmp_path):
+        (tmp_path / "index.html").write_text(AGENT_HTML)
+        rules = rule_engine.load_rules()
+        report = seo_agent.scan("example.com", tmp_path, rules,
+                                "https://example.com")
+        assert report["counts"]["pages"] == 1
+        assert report["counts"]["total"] > 0
+        assert report["counts"]["new"] == report["counts"]["total"]
+        assert recommend_store.list_recs("example.com")
+        brief = seo_agent.write_brief(report, out_dir=tmp_path / "out")
+        text = brief.read_text(encoding="utf-8")
+        assert "Report built by Lee Beirne - https://leebeirne.com" in text
+        assert "New findings" in text
+        assert "Next step" in text
+
+    def test_scan_labels_regressions_after_fix(self, tmp_path):
+        (tmp_path / "index.html").write_text(AGENT_HTML)
+        rules = rule_engine.load_rules()
+        seo_agent.scan("example.com", tmp_path, rules, "https://example.com")
+        for rec in recommend_store.list_recs("example.com"):
+            recommend_store.set_status("example.com", rec["id"], "done")
+        again = seo_agent.scan("example.com", tmp_path, rules,
+                               "https://example.com")
+        assert again["counts"]["total"] > 0
+        assert again["counts"]["regressed"] == again["counts"]["total"]
+        assert again["counts"]["new"] == 0
+
+    def test_collect_and_apply_fixes(self, tmp_path):
+        page = tmp_path / "index.html"
+        page.write_text(
+            "<!DOCTYPE html><html><head></head><body><h1>Grinders</h1>"
+            "<p>Compare the best coffee grinders of 2026.</p></body></html>")
+        rules = rule_engine.load_rules()
+        reports = seo_agent.collect_fixes([page], rules, tmp_path,
+                                          "https://example.com")
+        assert reports, "expected at least one patchable finding"
+        applied = seo_agent.apply_fixes(reports, rules)
+        assert applied and applied[0]["applied"]
+        html = page.read_text(encoding="utf-8")
+        assert 'rel="canonical"' in html
+        assert page.with_suffix(".html.bak").is_file()
+        assert applied[0]["after_score"] >= applied[0]["before_score"]
+
+    def test_mechanical_only_skips_drafts(self, tmp_path):
+        page = tmp_path / "index.html"
+        page.write_text(
+            "<!DOCTYPE html><html><head></head><body><h1>Grinders</h1>"
+            "<p>Compare the best coffee grinders of 2026.</p></body></html>")
+        rules = rule_engine.load_rules()
+        with_drafts = seo_agent.collect_fixes([page], rules, tmp_path,
+                                              "https://example.com")
+        mechanical = seo_agent.collect_fixes([page], rules, tmp_path,
+                                             "https://example.com",
+                                             include_drafts=False)
+        assert any(p.get("draft") for r in with_drafts for p in r["patches"])
+        assert not any(p.get("draft") for r in mechanical
+                       for p in r["patches"])
+        assert mechanical, "mechanical patches should remain"
+
+    def test_ship_dry_run_never_calls_git(self, tmp_path, monkeypatch):
+        def boom(*args, **kwargs):
+            raise AssertionError("git must not run in dry-run")
+        monkeypatch.setattr(seo_agent, "_git", boom)
+        page = tmp_path / "index.html"
+        page.write_text("<html></html>")
+        plan = seo_agent.ship("example.com", tmp_path, [page], None)
+        assert plan["dry_run"] is True
+        assert plan["files"] == ["index.html"]
+        assert any("gh pr create" in c for c in plan["commands"])
+        assert any("git checkout" in c for c in plan["commands"])
+
+    def test_ship_with_no_files_is_a_noop(self, tmp_path, monkeypatch):
+        def boom(*args, **kwargs):
+            raise AssertionError("git must not run with no files")
+        monkeypatch.setattr(seo_agent, "_git", boom)
+        plan = seo_agent.ship("example.com", tmp_path, [], None, open_pr=True)
+        assert "no patched files" in plan["note"]
+        assert plan["files"] == []
+
+    def test_cli_scan_writes_brief(self, tmp_path, monkeypatch, capsys):
+        (tmp_path / "index.html").write_text(AGENT_HTML)
+        monkeypatch.setenv("SEO_REPORTS_DIR", str(tmp_path / "reports"))
+        rc = seo_agent.main(["scan", "--domain", "example.com",
+                             "--dir", str(tmp_path),
+                             "--base-url", "https://example.com"])
+        assert rc == 0
+        out = json.loads(capsys.readouterr().out)
+        assert out["counts"]["pages"] == 1
+        assert Path(out["brief"]).is_file()
+        assert (tmp_path / "reports" / "example.com").is_dir()
+
+    def test_cli_fix_dry_run_changes_nothing(self, tmp_path, capsys):
+        page = tmp_path / "index.html"
+        page.write_text(
+            "<!DOCTYPE html><html><head></head><body><h1>Grinders</h1>"
+            "<p>Compare the best coffee grinders of 2026.</p></body></html>")
+        before = page.read_text(encoding="utf-8")
+        rc = seo_agent.main(["fix", "--domain", "example.com",
+                             "--dir", str(tmp_path),
+                             "--base-url", "https://example.com"])
+        assert rc == 0
+        assert page.read_text(encoding="utf-8") == before
+        out = json.loads(capsys.readouterr().out)
+        assert out["dry_run"] is True
+        assert out["files"]
